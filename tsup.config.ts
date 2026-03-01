@@ -10,7 +10,7 @@ export default defineConfig({
       js: '.mjs',
     }
   },
-  target: 'node18',
+  target: 'node20',
   clean: true,
   dts: true,
   sourcemap: true,
