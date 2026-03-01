@@ -17,6 +17,7 @@ import {
 import type { Source } from '../config/schema'
 import type { FetchError as RssFetchError } from '../sources/rss'
 import { logger } from '../utils/logger'
+import { createProgressBar } from '../utils/progress'
 
 /**
  * Parse a human-readable duration string into a Unix timestamp (ms).
@@ -153,24 +154,28 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
     }
 
     // Step 1: Fetch all sources in parallel with concurrency cap
-    logger.start(`Fetching ${config.sources.length} sources...`)
+    const fetchBar = createProgressBar()
+    fetchBar.start(config.sources.length, 0, { stage: 'Fetching' })
     const fetchLimit = pLimit(concurrency)
     const fetchResults = await Promise.all(
       config.sources.map((source) =>
-        fetchLimit(() =>
-          fetchSource(source, lastRunTime, maxItems, maxContentLength).catch(
+        fetchLimit(async () => {
+          const result = await fetchSource(source, lastRunTime, maxItems, maxContentLength).catch(
             (err): { items: RawItem[]; errors: MarkdownFetchError[] } => {
-              // Catch unexpected errors per-source so others can continue
               const message = err instanceof Error ? err.message : String(err)
               return {
                 items: [],
                 errors: [{ sourceName: source.name, url: source.url, error: message }],
               }
             },
-          ),
-        ),
+          )
+          fetchBar.increment(1, { stage: `Fetching — ${source.name}` })
+          return result
+        }),
       ),
     )
+    fetchBar.stop()
+
     // Collect all items and errors
     const allItems: RawItem[] = []
     const allErrors: MarkdownFetchError[] = []
@@ -179,11 +184,15 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
       allErrors.push(...result.errors)
     }
 
+    // Log each error individually so the user knows what broke and why
+    for (const err of allErrors) {
+      logger.fail(`${err.sourceName}: ${err.error} (${err.url})`)
+    }
+
     const errorSuffix = allErrors.length > 0 ? ` (${allErrors.length} errors)` : ''
     logger.success(
       `Fetched ${allItems.length} items from ${config.sources.length} sources${errorSuffix}`,
     )
-
     // Step 2: Filter already-seen items
     const newItems = allItems.filter((item) => !isSeen(store, item.id))
     const skippedCount = allItems.length - newItems.length
@@ -195,18 +204,32 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
     // Step 3: Summarize new items via LLM
     if (newItems.length === 0) {
       logger.info('Nothing to summarize')
-    } else {
-      logger.start(`Summarizing ${newItems.length} items with ${config.llm.model}...`)
     }
     const llmClient = createLLMClient(config.llm)
     const summarizeLimit = pLimit(concurrency)
+
+    // Progress bar for summarization
+    let summarizeBar: ReturnType<typeof createProgressBar> | null = null
+    if (newItems.length > 0) {
+      summarizeBar = createProgressBar()
+      summarizeBar.start(newItems.length, 0, { stage: `Summarizing (${config.llm.model})` })
+    }
+
     const summaryResults = await Promise.all(
       newItems.map((item) =>
-        summarizeLimit(() =>
-          summarizeItem(llmClient, config.llm.model, item.content, item.sourceName),
-        ),
+        summarizeLimit(async () => {
+          const result = await summarizeItem(
+            llmClient,
+            config.llm.model,
+            item.content,
+            item.sourceName,
+          )
+          summarizeBar?.increment(1, { stage: `Summarizing — ${item.sourceName}` })
+          return result
+        }),
       ),
     )
+    summarizeBar?.stop()
 
     // Build digest items from successful summaries
     const digestItems: DigestItem[] = []
@@ -243,6 +266,7 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
     }
 
     // Step 6: Update DB state — mark all processed items as seen
+    logger.start('Saving to database...')
     for (const item of newItems) {
       markSeen(store, item.id, item.sourceName, item.title)
     }
@@ -252,7 +276,7 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
 
     // Save store
     store.save()
-
+    logger.success('Database updated')
     return output
   } finally {
     await store.close()
