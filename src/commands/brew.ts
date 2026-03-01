@@ -2,6 +2,7 @@ import { defineCommand } from 'citty'
 import { writeFileSync } from 'node:fs'
 import pLimit from 'p-limit'
 import { loadConfig } from '../config/loader'
+import { ensureConfig, ensureAuth } from '../config/ensure'
 import { initStore } from '../db/store'
 import { isSeen, markSeen, getLastRunTime, setLastRunTime } from '../db/dedup'
 import { fetchRssFeed } from '../sources/rss'
@@ -254,13 +255,14 @@ export default defineCommand({
     },
   },
   async run({ args }) {
-    const configPath =
-      args.config ||
-      (() => {
-        // Lazy import to avoid requiring env-paths at module load
-        const { getDefaultConfigPath } = require('../config/loader')
-        return getDefaultConfigPath()
-      })()
+    const configPath = ensureConfig(args.config)
+
+    // Auto-prompt for LLM auth if not configured
+    const authOk = await ensureAuth(configPath)
+    if (!authOk) {
+      logger.warn('LLM auth setup cancelled. Cannot brew without LLM configuration.')
+      return
+    }
 
     const brewOptions: BrewOptions = {
       configPath,

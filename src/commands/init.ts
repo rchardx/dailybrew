@@ -1,7 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { defineCommand } from 'citty'
-import envPaths from 'env-paths'
+import { getDefaultConfigPath } from '../config/loader'
 import { logger } from '../utils/logger'
 
 const EXAMPLE_CONFIG = `# dailybrew configuration
@@ -46,11 +46,6 @@ async function initConfig(configPath?: string, options?: { force?: boolean }): P
   fs.writeFileSync(finalPath, EXAMPLE_CONFIG, 'utf-8')
 
   return `Config initialized at ${finalPath}`
-}
-
-function getDefaultConfigPath(): string {
-  const paths = envPaths('dailybrew')
-  return path.join(paths.config, 'config.yaml')
 }
 
 export { initConfig }

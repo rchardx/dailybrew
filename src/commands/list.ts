@@ -1,17 +1,11 @@
 import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { defineCommand } from 'citty'
 import yaml from 'js-yaml'
-import envPaths from 'env-paths'
+import { ensureConfig } from '../config/ensure'
 import { logger } from '../utils/logger'
 
 async function listSources(configPath?: string): Promise<string> {
-  const finalPath = configPath || getDefaultConfigPath()
-
-  // Check if config exists
-  if (!fs.existsSync(finalPath)) {
-    throw new Error(`Config file not found at ${finalPath}`)
-  }
+  const finalPath = ensureConfig(configPath)
 
   // Load current config
   const fileContent = fs.readFileSync(finalPath, 'utf-8')
@@ -39,11 +33,6 @@ async function listSources(configPath?: string): Promise<string> {
   output += `Total: ${config.sources.length} source(s)\n`
 
   return output
-}
-
-function getDefaultConfigPath(): string {
-  const paths = envPaths('dailybrew')
-  return path.join(paths.config, 'config.yaml')
 }
 
 export { listSources }

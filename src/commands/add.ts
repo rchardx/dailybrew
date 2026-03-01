@@ -1,9 +1,8 @@
 import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { defineCommand } from 'citty'
 import yaml from 'js-yaml'
-import envPaths from 'env-paths'
 import type { Source } from '../config/schema'
+import { ensureConfig } from '../config/ensure'
 import { logger } from '../utils/logger'
 
 export interface AddOptions {
@@ -17,12 +16,7 @@ async function addSource(configPath?: string, url?: string, options?: AddOptions
     throw new Error('URL is required')
   }
 
-  const finalPath = configPath || getDefaultConfigPath()
-
-  // Check if config exists
-  if (!fs.existsSync(finalPath)) {
-    throw new Error(`Config file not found at ${finalPath}. Run 'init' first.`)
-  }
+  const finalPath = ensureConfig(configPath)
 
   // Load current config
   const fileContent = fs.readFileSync(finalPath, 'utf-8')
@@ -70,11 +64,6 @@ async function addSource(configPath?: string, url?: string, options?: AddOptions
   fs.writeFileSync(finalPath, yaml_dump, 'utf-8')
 
   return `Added source: ${newSource.name} (${url})`
-}
-
-function getDefaultConfigPath(): string {
-  const paths = envPaths('dailybrew')
-  return path.join(paths.config, 'config.yaml')
 }
 
 export { addSource }

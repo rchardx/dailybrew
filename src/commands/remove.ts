@@ -1,8 +1,7 @@
 import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { defineCommand } from 'citty'
 import yaml from 'js-yaml'
-import envPaths from 'env-paths'
+import { ensureConfig } from '../config/ensure'
 import { logger } from '../utils/logger'
 
 async function removeSource(configPath?: string, url?: string): Promise<string> {
@@ -10,12 +9,7 @@ async function removeSource(configPath?: string, url?: string): Promise<string> 
     throw new Error('URL is required')
   }
 
-  const finalPath = configPath || getDefaultConfigPath()
-
-  // Check if config exists
-  if (!fs.existsSync(finalPath)) {
-    throw new Error(`Config file not found at ${finalPath}`)
-  }
+  const finalPath = ensureConfig(configPath)
 
   // Load current config
   const fileContent = fs.readFileSync(finalPath, 'utf-8')
@@ -40,11 +34,6 @@ async function removeSource(configPath?: string, url?: string): Promise<string> 
   fs.writeFileSync(finalPath, yaml_dump, 'utf-8')
 
   return `Removed source with URL: ${url}`
-}
-
-function getDefaultConfigPath(): string {
-  const paths = envPaths('dailybrew')
-  return path.join(paths.config, 'config.yaml')
 }
 
 export { removeSource }

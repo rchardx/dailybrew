@@ -1,3 +1,5 @@
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { defineCommand, runMain } from 'citty'
 import { logger } from './utils/logger'
 
@@ -13,6 +15,8 @@ export const main = defineCommand({
     add: () => import('./commands/add').then((m) => m.default),
     remove: () => import('./commands/remove').then((m) => m.default),
     list: () => import('./commands/list').then((m) => m.default),
+    import: () => import('./commands/import').then((m) => m.default),
+    auth: () => import('./commands/auth').then((m) => m.default),
   },
   args: {},
   run() {
@@ -23,7 +27,9 @@ export const main = defineCommand({
 export default main
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+const currentFile = fileURLToPath(import.meta.url)
+const entryFile = process.argv[1] ? resolve(process.argv[1]) : ''
+if (currentFile === entryFile) {
   runMain(main).catch((error) => {
     logger.error(error)
     process.exit(1)
