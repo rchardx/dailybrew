@@ -1,158 +1,168 @@
 # AGENTS.md - dailybrew
 
-Guidelines for agentic coding agents working in the dailybrew repository.
+Guidelines for AI coding agents working in this repository.
 
 ## Build, Lint, Test Commands
 
 ```bash
-# Install dependencies
-npm install
+# Package manager — MUST use pnpm (see packageManager field in package.json)
+pnpm install
 
-# Build the project (compiles TypeScript to dist/)
-npm run build
+# Build (TypeScript → dist/ via tsup, copies sql-wasm.wasm)
+pnpm build
+
+# Type-check without emitting
+pnpm lint
 
 # Run all tests
-npm test
+pnpm test
 
 # Run a single test file
-npx vitest run tests/config/schema.test.ts
+pnpm vitest run tests/config/schema.test.ts
 
-# Run tests in watch mode (for development)
-npm run dev
+# Run tests matching a directory
+pnpm vitest run tests/llm/
 
-# Type check without emitting (lint)
-npm run lint
+# Run tests in watch mode
+pnpm dev
+
+# Run tests with coverage (thresholds: 80% lines/functions/statements, 70% branches)
+pnpm test:coverage
+
+# Auto-format with Biome
+pnpm format
 ```
 
 ## Code Style Guidelines
 
+Enforced by **Biome 2.4** via `biome.json` and **husky + lint-staged** pre-commit hook.
+
 ### Imports & Modules
-- Use **ESM modules** (`"type": "module"` in package.json)
-- Prefer **single quotes** for strings
-- Use explicit imports with `.js` extension for local modules (e.g., `import { foo } from './bar.js'`)
-- Group imports: external deps first, then internal modules
+- ESM only (`"type": "module"` in package.json)
+- Single quotes for strings
+- Use `.js` extension for local imports (e.g., `import { foo } from './bar.js'`)
+- Group imports: `node:` builtins first, external packages, then internal modules
+- Imports are NOT auto-organized by Biome (organizeImports is off) — maintain manual grouping
 
 ### Formatting
-- **No semicolons** (project style - be consistent)
 - 2-space indentation
-- Max line length: follow existing patterns (~100 chars)
-- Trailing commas in multi-line objects/arrays
+- Semicolons: `asNeeded` (Biome inserts only where required for ASI hazards — most lines have none)
+- Line width: 100 characters
+- Trailing commas in multi-line objects, arrays, and parameters
 
 ### Naming Conventions
-- **Files**: lowercase with hyphens (e.g., `brew.test.ts`, `url-utils.ts`)
-- **Functions**: camelCase (e.g., `fetchRssFeed`, `normalizeUrl`)
-- **Types/Interfaces**: PascalCase (e.g., `LLMConfig`, `Source`, `Config`)
-- **Constants**: UPPER_SNAKE_CASE for true constants (e.g., `MAX_SUMMARY_LENGTH`)
-- **Schemas**: camelCase with `Schema` suffix (e.g., `configSchema`, `sourceSchema`)
+- **Files**: lowercase with hyphens (`url.ts`, `rss.test.ts`, `cli-progress.ts`)
+- **Functions**: camelCase (`fetchRssFeed`, `normalizeUrl`, `parseSinceDuration`)
+- **Types**: PascalCase (`LLMConfig`, `Source`, `Config`, `DigestItem`)
+- **Constants**: UPPER_SNAKE_CASE for true constants (`MAX_SUMMARY_LENGTH`)
+- **Zod schemas**: camelCase + `Schema` suffix (`configSchema`, `sourceSchema`)
 
 ### TypeScript
-- **Strict mode enabled** - no `any` types, proper null checks
-- Use Zod for runtime validation and type inference
-- Export types alongside schemas: `export type Config = z.infer<typeof configSchema>`
-- Prefer `type` over `interface` for simple type aliases
-- Use explicit return types for public functions
-
-### Architecture Patterns
-- **Functions + modules** - no classes, no dependency injection
-- Each module exports specific functions, not generic classes
-- CLI commands use `citty` with `defineCommand`
-- Lazy-load subcommands: `() => import('./commands/brew').then(m => m.default)`
+- Strict mode enabled (`tsconfig.json` has `"strict": true`)
+- Target: ES2022, module: ESNext, moduleResolution: bundler
+- Use **Zod** for runtime validation; derive types with `z.infer<>`:
+  ```typescript
+  export const sourceSchema = z.object({ name: z.string(), url: z.string().url() })
+  export type Source = z.infer<typeof sourceSchema>
+  ```
+- Prefer `type` over `interface` for data shapes
+- Note: Biome's `noExplicitAny` is off, but avoid `any` where possible — prefer `unknown`
+- Never use `@ts-ignore` or `@ts-expect-error`
 
 ### Error Handling
-- Use **Zod** for input validation with descriptive error messages
 - Return `null` or error objects instead of throwing when possible
-- Wrap external calls in try/catch, return clean error messages
-- Use `try/finally` to ensure resources are cleaned up (e.g., `store.close()`)
-- Never use empty catch blocks - always log or handle the error
+- Wrap external calls (fetch, file I/O, LLM) in try/catch with descriptive messages
+- Use `try/finally` to clean up resources (e.g., `store.close()`)
+- Never use empty catch blocks — always log or handle the error
+- Use `consola` logger (`import { logger } from './utils/logger'`) — all logs go to stderr
 
-### Testing (Vitest)
-- Test files: `tests/{module}/{name}.test.ts`
-- Use `describe` and `it` blocks
-- Mock external dependencies (network, LLM, file system)
-- Use `vi.mock()` for module mocking
-- Prefer `expect(result.success).toBe(true)` over truthy checks
-- Test both success and error paths
+### Architecture
+- **Functions + modules** only — no classes, no dependency injection
+- CLI commands use `citty` with `defineCommand`
+- Lazy-load subcommands: `run: () => import('./commands/run').then((m) => m.default)`
+- Configuration in `~/.config/dailybrew/config.yaml` (LLM settings, options)
+- Sources in separate `~/.config/dailybrew/sources.yaml` (managed via `list add/remove`)
+- SQLite state in `~/.local/share/dailybrew/dailybrew.db`
+- Paths resolved via `env-paths('dailybrew')` — never hardcode `~/.config` or `~/.local`
 
-### File Organization
+## File Organization
+
 ```
 src/
-  cli.ts              # Main entry point
-  commands/           # CLI subcommands (brew, init, add, remove, list)
-  config/             # Schema + loader
-  db/                 # SQLite store + dedup logic
-  llm/                # OpenAI client + summarizer
-  output/             # Markdown formatter
-  sources/            # RSS + web fetchers
-  utils/              # URL normalization, hashing
+  cli.ts              # Entry point, subcommand routing (default = run)
+  commands/           # CLI subcommands: run, init, config, list, import, auth
+  config/             # Schema (Zod), loader (YAML), sources management, ensure/auto-init
+  db/                 # SQLite store (sql.js WASM) + dedup logic + lockfile protection
+  llm/                # OpenAI client, summarizer, prompt building, response schemas
+  output/             # Markdown digest formatter
+  sources/            # RSS fetcher, web scraper, feed detection, OPML parser
+  types/              # Ambient type declarations (e.g., sql.js.d.ts)
+  utils/              # URL normalization, logger (consola), progress bars
+tests/
+  {module}/           # Mirrors src/ structure: tests/sources/rss.test.ts
+  integration/        # End-to-end pipeline tests (mock network + LLM, real fs + SQLite)
+fixtures/             # Test data: sample-rss.xml, sample-atom.xml, sample-article.html,
+                      #   sample-blog.html, sample-page-with-feed.html, malformed.xml
 ```
 
-### Key Dependencies
-- **citty**: CLI framework
-- **zod**: Schema validation
-- **vitest**: Testing framework
-- **openai**: LLM client
-- **sql.js**: SQLite (WASM, no native deps)
-- **cheerio**: HTML parsing
+## Testing (Vitest)
+
+- Config: `vitest.config.ts` — `globals: true` means `describe`, `it`, `expect`, `vi`, `beforeEach`, etc. are available globally (no import needed, though importing from `vitest` also works)
+- Test files: `tests/{module}/{name}.test.ts`
+- Use `describe`/`it` blocks, test both success and error paths
+- Mock fetch with `vi.fn()` on `globalThis.fetch`:
+  ```typescript
+  const mockFetch = vi.fn()
+  globalThis.fetch = mockFetch
+  mockFetch.mockResolvedValueOnce(new Response(body, { status: 200 }))
+  ```
+- Partial-mock modules with `importOriginal` to keep real exports:
+  ```typescript
+  vi.mock('../../src/config/sources', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../src/config/sources')>()
+    return { ...actual, loadSources: vi.fn(() => []) }
+  })
+  ```
+- Suppress logger noise in tests:
+  ```typescript
+  vi.mock('../../src/utils/logger', () => ({
+    logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), success: vi.fn(),
+              start: vi.fn(), fail: vi.fn(), log: vi.fn() },
+  }))
+  ```
+- Use temp directories for file system tests (`fs.mkdtempSync`)
+- Integration tests mock `loadSources` to avoid reading real user config
+- Prefer strict assertions: `expect(x).toBe(true)` over `expect(x).toBeTruthy()`
+- Load fixtures with `readFileSync(join(fixturesDir, 'sample-rss.xml'), 'utf-8')`
+
+## Key Dependencies
+
+- **citty**: CLI framework with `defineCommand` + subcommands
+- **zod**: Schema validation and type inference
+- **vitest**: Test framework (globals mode)
+- **openai**: LLM client (OpenAI-compatible endpoints)
+- **sql.js**: SQLite via WASM (no native deps, cross-platform)
+- **cheerio**: HTML parsing for web scraping
 - **rss-parser**: RSS/Atom feed parsing
-- **p-limit**: Concurrency control
+- **p-limit**: Concurrency control for parallel fetches
+- **consola**: Logging (all output to stderr)
+- **js-yaml**: YAML config parsing
+- **env-paths**: XDG-compliant config/data/cache paths
+- **proper-lockfile**: File locking for concurrent SQLite access
+- **tsup**: Build tool (ESM output, `.mjs` extension)
 
-### Environment & Constraints
-- **Node.js >= 20** required
-- Cross-platform: Mac/Linux/Windows (no native dependencies)
-- ESM output only (no CommonJS)
-- sql.js WASM must be copied to `dist/` during build
+## Environment & Constraints
 
-## Running Single Tests
+- **Node.js >= 20** required (target: node20)
+- Cross-platform: Mac/Linux/Windows (zero native dependencies)
+- ESM output only — no CommonJS
+- sql.js WASM binary is copied to `dist/` during build (`tsup.config.ts` onSuccess hook)
+- Pre-commit: husky runs `lint-staged` → `biome check --write` on `*.{ts,js,json}`
 
-```bash
-# Run specific test file
-npx vitest run tests/commands/brew.test.ts
+## Git Commit Guidelines
 
-# Run tests matching a pattern
-npx vitest run --reporter=verbose tests/llm/
-
-# Run with coverage
-npx vitest run --coverage
-```
-
-## Common Patterns
-
-### Zod Schema Definition
-```typescript
-export const mySchema = z.object({
-  name: z.string().min(1, 'name is required'),
-  count: z.number().int().positive().default(10),
-})
-
-export type MyType = z.infer<typeof mySchema>
-```
-
-### CLI Command Structure
-```typescript
-import { defineCommand } from 'citty'
-
-export default defineCommand({
-  meta: { name: 'command', description: '...' },
-  args: {
-    url: { type: 'positional', required: true },
-    name: { type: 'string' },
-  },
-  async run({ args }) {
-    // Implementation
-  },
-})
-```
-
-### Error-Resilient Function
-```typescript
-async function fetchData(url: string): Promise<Result | null> {
-  try {
-    const response = await fetch(url)
-    if (!response.ok) return null
-    return await response.json()
-  } catch (error) {
-    console.error(`Failed to fetch ${url}:`, error)
-    return null
-  }
-}
-```
+- Do NOT add `Co-authored-by` trailers to commits
+- Do NOT add `Ultraworked with [Sisyphus]` or any agent attribution lines to commit messages
+- Commit messages should contain ONLY the subject line (and optionally a body describing the change)
+- Use semantic commit style: `type: description` (e.g., `feat:`, `fix:`, `test:`, `ci:`, `docs:`, `chore:`, `refactor:`)
+- Language: English
