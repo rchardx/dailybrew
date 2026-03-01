@@ -1,14 +1,10 @@
 import * as fs from 'node:fs'
 import { defineCommand } from 'citty'
-import yaml from 'js-yaml'
-import type { Source } from '../config/schema'
 import { parseOpml } from '../sources/opml'
-import { ensureConfig } from '../config/ensure'
+import { loadSources, saveSources, ensureSources } from '../config/sources'
 import { logger } from '../utils/logger'
 
-async function importOpml(filePath: string, configPath?: string): Promise<string> {
-  const finalConfigPath = ensureConfig(configPath)
-
+async function importOpml(filePath: string): Promise<string> {
   // Check if OPML file exists
   if (!fs.existsSync(filePath)) {
     throw new Error(`OPML file not found at ${filePath}`)
@@ -22,16 +18,8 @@ async function importOpml(filePath: string, configPath?: string): Promise<string
     return 'Imported 0 sources (0 skipped as duplicates)'
   }
 
-  // Load current config
-  const fileContent = fs.readFileSync(finalConfigPath, 'utf-8')
-  const config = yaml.load(fileContent) as Record<string, unknown>
-
-  // Ensure sources array exists
-  if (!config.sources) {
-    config.sources = []
-  }
-
-  const existingSources = config.sources as Source[]
+  ensureSources()
+  const existingSources = loadSources()
   const existingUrls = new Set(existingSources.map((s) => s.url))
 
   let imported = 0
@@ -47,9 +35,7 @@ async function importOpml(filePath: string, configPath?: string): Promise<string
     }
   }
 
-  // Write back to file
-  const yamlDump = yaml.dump(config, { lineWidth: -1 })
-  fs.writeFileSync(finalConfigPath, yamlDump, 'utf-8')
+  saveSources(existingSources)
 
   return `Imported ${imported} sources (${skipped} skipped as duplicates)`
 }
@@ -67,14 +53,9 @@ export default defineCommand({
       required: true,
       description: 'Path to OPML file',
     },
-    config: {
-      type: 'string',
-      description: 'Path to config file',
-      alias: 'c',
-    },
   },
   async run({ args }) {
-    const result = await importOpml(args.file, args.config)
+    const result = await importOpml(args.file)
     logger.log(result)
   },
 })

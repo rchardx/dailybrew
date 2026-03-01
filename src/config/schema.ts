@@ -26,7 +26,6 @@ export const optionsSchema = z
   })
 export const configSchema = z.object({
   llm: llmConfigSchema,
-  sources: z.array(sourceSchema).default([]),
   options: optionsSchema,
 })
 

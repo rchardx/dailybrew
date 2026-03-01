@@ -4,9 +4,8 @@ import * as path from 'node:path'
 import * as os from 'node:os'
 import yaml from 'js-yaml'
 import { initConfig } from '../../src/commands/init'
-import { addSource } from '../../src/commands/add'
-import { removeSource } from '../../src/commands/remove'
-import { listSources } from '../../src/commands/list'
+import { addSource, removeSource, listSources } from '../../src/commands/list'
+import { configSet } from '../../src/commands/config'
 
 let tempDir: string
 let configDir: string
@@ -202,5 +201,52 @@ describe('Source Management Commands', () => {
 
       expect(output.toLowerCase()).toMatch(/rss|feed|type/)
     })
+  })
+})
+
+describe('Config Command', () => {
+  beforeEach(() => {
+    fs.mkdirSync(configDir, { recursive: true })
+  })
+
+  it('should set a numeric option', async () => {
+    await initConfig(configPath)
+    const result = configSet(configPath, 'options.maxItems', '20')
+
+    expect(result).toContain('→ 20')
+    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as any
+    expect(config.options.maxItems).toBe(20)
+  })
+
+  it('should set a string option', async () => {
+    await initConfig(configPath)
+    const result = configSet(configPath, 'llm.model', 'gpt-4o')
+
+    expect(result).toContain('→ gpt-4o')
+    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as any
+    expect(config.llm.model).toBe('gpt-4o')
+  })
+
+  it('should reject unknown keys', () => {
+    initConfig(configPath)
+    const result = configSet(configPath, 'unknown.key', 'value')
+
+    expect(result).toContain('Unknown config key')
+    expect(result).toContain('Settable keys')
+  })
+
+  it('should reject invalid number values', () => {
+    initConfig(configPath)
+    const result = configSet(configPath, 'options.maxItems', 'abc')
+
+    expect(result).toContain('Invalid value')
+    expect(result).toContain('positive integer')
+  })
+
+  it('should reject negative number values', () => {
+    initConfig(configPath)
+    const result = configSet(configPath, 'options.concurrency', '-1')
+
+    expect(result).toContain('Invalid value')
   })
 })

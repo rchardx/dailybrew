@@ -12,17 +12,9 @@ llm:
   apiKey: "\${DAILYBREW_API_KEY}"    # Set env var: export DAILYBREW_API_KEY=your-key
   model: "gpt-4o-mini"
 
-sources:
-  # Example RSS feed:
-  # - name: "Hacker News"
-  #   url: "https://hnrss.org/frontpage"
-  #   type: rss
-  #
-  # Example web page:
-  # - name: "Antirez"
-  #   url: "http://antirez.com/"
-  #   type: web
-  #   selector: "h2 > a"
+# Sources are managed separately in sources.yaml
+# Use: dailybrew list add <url>
+# Or:  dailybrew import feeds.opml
 
 options:
   maxItems: 10

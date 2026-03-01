@@ -13,10 +13,6 @@ llm:
   apiKey: "\${DAILYBREW_API_KEY}"    # Set env var: export DAILYBREW_API_KEY=your-key
   model: "gpt-4o-mini"
 
-sources:
-  # Add sources with: dailybrew add <url>
-  # Or import from OPML: dailybrew import feeds.opml
-
 options:
   maxItems: 10
   maxContentLength: 65536

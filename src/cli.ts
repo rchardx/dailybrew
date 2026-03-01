@@ -13,14 +13,18 @@ export const main = defineCommand({
     run: () => import('./commands/run').then((m) => m.default),
     init: () => import('./commands/init').then((m) => m.default),
     config: () => import('./commands/config').then((m) => m.default),
-    add: () => import('./commands/add').then((m) => m.default),
-    remove: () => import('./commands/remove').then((m) => m.default),
     list: () => import('./commands/list').then((m) => m.default),
     import: () => import('./commands/import').then((m) => m.default),
     auth: () => import('./commands/auth').then((m) => m.default),
   },
   args: {},
   async run() {
+    // citty always calls parent run() even after subcommand — guard against double execution
+    const subCommandNames = new Set(Object.keys(main.subCommands ?? {}))
+    const firstArg = process.argv.slice(2).find((a) => !a.startsWith('-'))
+    if (firstArg && subCommandNames.has(firstArg)) {
+      return
+    }
     // Default: no subcommand = run
     const runCmd = await import('./commands/run').then((m) => m.default)
     await runCommand(runCmd, { rawArgs: process.argv.slice(2) })

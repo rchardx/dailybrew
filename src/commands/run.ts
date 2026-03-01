@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs'
 import pLimit from 'p-limit'
 import { loadConfig } from '../config/loader'
 import { ensureConfig, ensureAuth } from '../config/ensure'
+import { loadSources } from '../config/sources'
 import { initStore } from '../db/store'
 import { isSeen, markSeen, getLastRunTime, setLastRunTime, pruneSeen } from '../db/dedup'
 import { fetchRssFeed } from '../sources/rss'
@@ -129,13 +130,12 @@ async function fetchSource(
  */
 export async function runPipeline(options: RunOptions): Promise<string> {
   const config = loadConfig(options.configPath)
+  const sources = loadSources()
   const maxItems = options.maxItems ?? config.options.maxItems
   const concurrency = config.options.concurrency
   const maxContentLength = config.options.maxContentLength
 
-  logger.info(
-    `Loaded ${config.sources.length} sources (maxItems=${maxItems}, concurrency=${concurrency})`,
-  )
+  logger.info(`Loaded ${sources.length} sources (maxItems=${maxItems}, concurrency=${concurrency})`)
 
   const store = await initStore()
   try {
@@ -155,10 +155,10 @@ export async function runPipeline(options: RunOptions): Promise<string> {
 
     // Step 1: Fetch all sources in parallel with concurrency cap
     const fetchBar = createProgressBar()
-    fetchBar.start(config.sources.length, 0, { stage: 'Fetching' })
+    fetchBar.start(sources.length, 0, { stage: 'Fetching' })
     const fetchLimit = pLimit(concurrency)
     const fetchResults = await Promise.all(
-      config.sources.map((source) =>
+      sources.map((source) =>
         fetchLimit(async () => {
           const result = await fetchSource(source, lastRunTime, maxItems, maxContentLength).catch(
             (err): { items: RawItem[]; errors: MarkdownFetchError[] } => {
@@ -190,9 +190,7 @@ export async function runPipeline(options: RunOptions): Promise<string> {
     }
 
     const errorSuffix = allErrors.length > 0 ? ` (${allErrors.length} errors)` : ''
-    logger.success(
-      `Fetched ${allItems.length} items from ${config.sources.length} sources${errorSuffix}`,
-    )
+    logger.success(`Fetched ${allItems.length} items from ${sources.length} sources${errorSuffix}`)
     // Step 2: Filter already-seen items
     const newItems = allItems.filter((item) => !isSeen(store, item.id))
     const skippedCount = allItems.length - newItems.length
