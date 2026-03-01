@@ -1,6 +1,7 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import yaml from 'js-yaml'
+import envPaths from 'env-paths'
 import { configSchema, type Config } from './schema'
 
 /**
@@ -90,8 +91,6 @@ export function loadConfig(configPath: string): Config {
  * Returns: ~/.config/dailybrew/config.yaml (cross-platform)
  */
 export function getDefaultConfigPath(): string {
-  // We import here to avoid issues
-  const envPaths = require('env-paths')
   const paths = envPaths('dailybrew')
   return path.join(paths.config, 'config.yaml')
 }
