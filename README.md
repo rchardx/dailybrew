@@ -5,16 +5,19 @@ LLM-powered RSS/web digest CLI — fetch sources, summarize with an OpenAI-compa
 ## Features
 
 - **Multi-source support**: RSS feeds and web pages (CSS selector extraction)
+- **OPML import**: Bulk-import RSS feeds from any RSS reader's OPML export
 - **LLM summarization**: OpenAI-compatible API with fallback JSON parsing
+- **Seamless setup**: Config auto-creates on first use, LLM auth prompts when needed — no manual `init` required
+- **Multiple LLM providers**: Built-in presets for OpenAI, OpenRouter, Groq, and local models (LM Studio / Ollama)
 - **Deduplication**: SQLite-based tracking prevents duplicate content across runs
 - **Cross-platform**: No native dependencies — runs on Mac, Linux, and Windows
 - **Importance ranking**: Each item rated 1-5, sorted in output
 - **Graceful error handling**: Feed failures don't abort the entire run
-- **Environment variable support**: API key via `DAILYBREW_API_KEY`
+- **Environment variable support**: API key via `DAILYBREW_API_KEY` or interactive setup
 
 ## Installation
 
-### From source (requires Node.js 18+)
+### From source (requires Node.js 20+)
 
 ```bash
 git clone https://github.com/rchardx/dailybrew.git
@@ -36,72 +39,52 @@ dailybrew --help
 
 ## Quick Start
 
-### 1. Initialize configuration
+No manual initialization needed — dailybrew auto-creates config on first use.
+
+### 1. Import your feeds (optional)
+
+If you have an OPML file from another RSS reader:
 
 ```bash
-dailybrew init
+dailybrew import feeds.opml
 ```
 
-This creates a config file at `~/.config/dailybrew/config.yaml` (cross-platform) with example sources.
+Or add feeds individually:
 
-### 2. Configure your sources
-
-Edit `~/.config/dailybrew/config.yaml` to add your RSS feeds and web pages:
-
-```yaml
-llm:
-  baseUrl: "https://api.openai.com/v1"
-  apiKey: "${DAILYBREW_API_KEY}"    # Set env var: export DAILYBREW_API_KEY=sk-...
-  model: "gpt-4o-mini"
-
-sources:
-  - name: "Hacker News"
-    url: "https://hnrss.org/frontpage"
-    type: rss
-
-  - name: "Antirez Blog"
-    url: "http://antirez.com/"
-    type: web
-    selector: "h2 > a"               # CSS selector for article links
-
-options:
-  maxItems: 50                       # Max items per source per run
-  maxContentLength: 4000             # Truncate before sending to LLM
-  concurrency: 5                     # Parallel fetches
+```bash
+dailybrew add https://hnrss.org/frontpage --name "Hacker News"
 ```
 
-### 3. Run the digest
+### 2. Run the digest
 
 ```bash
 dailybrew brew
 ```
 
+On first run, dailybrew will interactively prompt you to configure your LLM provider (OpenAI, OpenRouter, Groq, local, or custom). No need to edit YAML manually.
+
 Output: markdown digest sorted by importance (5=critical, 1=low) on stdout.
 
-Option: Save to file
+Save to file:
 
 ```bash
 dailybrew brew --output digest.md
 ```
 
-### 4. Manage sources
-
-Add a source:
+### 3. Manage sources
 
 ```bash
+# Add a source
 dailybrew add https://hnrss.org/frontpage --name "HN"
 dailybrew add https://example.com/blog --type web --selector "article h2 > a"
-```
 
-List sources:
+# Import from OPML
+dailybrew import feeds.opml
 
-```bash
+# List sources
 dailybrew list
-```
 
-Remove a source:
-
-```bash
+# Remove a source
 dailybrew remove https://hnrss.org/frontpage
 ```
 
@@ -130,6 +113,24 @@ Create example config file (skips if already exists, use `--force` to override).
 
 ```bash
 dailybrew init
+```
+
+### `auth`
+
+Interactively configure your LLM provider. Supports presets for OpenAI, OpenRouter, Groq, and local models, or a fully custom endpoint.
+
+```bash
+dailybrew auth
+```
+
+This is also triggered automatically by `brew` if no API key is configured.
+
+### `import <file>`
+
+Import RSS feeds from an OPML file (exported from any RSS reader).
+
+```bash
+dailybrew import feeds.opml
 ```
 
 ### `add <url>`
@@ -167,7 +168,7 @@ dailybrew list
 
 ## Configuration
 
-Config file: `~/.config/dailybrew/config.yaml` (auto-created by `init`)
+Config file: `~/.config/dailybrew/config.yaml` (auto-created on first use by any command)
 
 State DB: `~/.local/share/dailybrew/dailybrew.db` (auto-created on first run)
 
@@ -247,8 +248,6 @@ Create a scheduled task:
 
 - No TUI or web UI — CLI only
 - No streaming LLM responses — batch processing
-- No interactive config wizard — YAML editing required
-- No OPML import — manual source addition
 - Content is fetched fresh every run (no caching)
 
 ## Troubleshooting
