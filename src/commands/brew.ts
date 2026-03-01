@@ -1,18 +1,21 @@
-import { defineCommand } from 'citty';
-import { writeFileSync } from 'node:fs';
-import pLimit from 'p-limit';
-import { loadConfig } from '../config/loader';
-import { initStore, type Store } from '../db/store';
-import { isSeen, markSeen, getLastRunTime, setLastRunTime } from '../db/dedup';
-import { fetchRssFeed } from '../sources/rss';
-import { fetchWebPage } from '../sources/web';
-import { createLLMClient } from '../llm/client';
-import { summarizeItem } from '../llm/summarize';
-import { formatDigest, type DigestItem, type FetchError as MarkdownFetchError } from '../output/markdown';
-import type { Config, Source } from '../config/schema';
-import type { RawItem as RssRawItem, FetchError as RssFetchError } from '../sources/rss';
-import type { RawItem as WebRawItem, FetchError as WebFetchError } from '../sources/web';
-import { logger } from '../utils/logger';
+import { defineCommand } from 'citty'
+import { writeFileSync } from 'node:fs'
+import pLimit from 'p-limit'
+import { loadConfig } from '../config/loader'
+import { initStore } from '../db/store'
+import { isSeen, markSeen, getLastRunTime, setLastRunTime } from '../db/dedup'
+import { fetchRssFeed } from '../sources/rss'
+import { fetchWebPage } from '../sources/web'
+import { createLLMClient } from '../llm/client'
+import { summarizeItem } from '../llm/summarize'
+import {
+  formatDigest,
+  type DigestItem,
+  type FetchError as MarkdownFetchError,
+} from '../output/markdown'
+import type { Source } from '../config/schema'
+import type { FetchError as RssFetchError } from '../sources/rss'
+import { logger } from '../utils/logger'
 
 /**
  * Parse a human-readable duration string into a Unix timestamp (ms).
@@ -20,32 +23,30 @@ import { logger } from '../utils/logger';
  * Returns the timestamp representing "duration ago from now".
  */
 export function parseSinceDuration(since: string): number {
-  const match = since.match(/^(\d+)([mhd])$/);
+  const match = since.match(/^(\d+)([mhd])$/)
   if (!match) {
-    throw new Error(
-      `Invalid --since format: "${since}". Use: 30m (minutes), 2h (hours), 1d (days)`
-    );
+    throw new Error(`Invalid --since format: "${since}". Use: 30m (minutes), 2h (hours), 1d (days)`)
   }
 
-  const value = parseInt(match[1], 10);
-  const unit = match[2];
+  const value = parseInt(match[1], 10)
+  const unit = match[2]
 
   const multipliers: Record<string, number> = {
     m: 60 * 1000,
     h: 60 * 60 * 1000,
     d: 24 * 60 * 60 * 1000,
-  };
+  }
 
-  return Date.now() - value * multipliers[unit];
+  return Date.now() - value * multipliers[unit]
 }
 
 /** Unified raw item type for the pipeline */
 interface RawItem {
-  id: string;
-  title: string;
-  link: string;
-  content: string;
-  sourceName: string;
+  id: string
+  title: string
+  link: string
+  content: string
+  sourceName: string
 }
 
 /** Normalize RSS FetchError to markdown FetchError format */
@@ -54,15 +55,15 @@ function normalizeRssError(err: RssFetchError, sourceUrl: string): MarkdownFetch
     sourceName: err.source,
     url: sourceUrl,
     error: err.message,
-  };
+  }
 }
 
 /** Options for the brew pipeline */
 export interface BrewOptions {
-  configPath: string;
-  maxItems?: number;
-  output?: string;
-  since?: string;
+  configPath: string
+  maxItems?: number
+  output?: string
+  since?: string
 }
 
 /**
@@ -75,33 +76,37 @@ async function fetchSource(
   maxItems: number,
   maxContentLength: number,
 ): Promise<{ items: RawItem[]; errors: MarkdownFetchError[] }> {
-  const items: RawItem[] = [];
-  const errors: MarkdownFetchError[] = [];
+  const items: RawItem[] = []
+  const errors: MarkdownFetchError[] = []
 
   if (source.type === 'web') {
-    const result = await fetchWebPage(source, lastRunTime, maxItems, maxContentLength);
-    items.push(...result.items.map(i => ({
-      id: i.id,
-      title: i.title,
-      link: i.link,
-      content: i.content,
-      sourceName: i.sourceName,
-    })));
-    errors.push(...result.errors);
+    const result = await fetchWebPage(source, lastRunTime, maxItems, maxContentLength)
+    items.push(
+      ...result.items.map((i) => ({
+        id: i.id,
+        title: i.title,
+        link: i.link,
+        content: i.content,
+        sourceName: i.sourceName,
+      })),
+    )
+    errors.push(...result.errors)
   } else {
     // Default to RSS
-    const result = await fetchRssFeed(source, lastRunTime, maxItems);
-    items.push(...result.items.map(i => ({
-      id: i.id,
-      title: i.title,
-      link: i.link,
-      content: i.content,
-      sourceName: i.sourceName,
-    })));
-    errors.push(...result.errors.map(e => normalizeRssError(e, source.url)));
+    const result = await fetchRssFeed(source, lastRunTime, maxItems)
+    items.push(
+      ...result.items.map((i) => ({
+        id: i.id,
+        title: i.title,
+        link: i.link,
+        content: i.content,
+        sourceName: i.sourceName,
+      })),
+    )
+    errors.push(...result.errors.map((e) => normalizeRssError(e, source.url)))
   }
 
-  return { items, errors };
+  return { items, errors }
 }
 
 /**
@@ -121,65 +126,66 @@ async function fetchSource(
  * 10. Save + close store
  */
 export async function runBrewPipeline(options: BrewOptions): Promise<string> {
-  const config = loadConfig(options.configPath);
-  const maxItems = options.maxItems ?? config.options.maxItems;
-  const concurrency = config.options.concurrency;
-  const maxContentLength = config.options.maxContentLength;
+  const config = loadConfig(options.configPath)
+  const maxItems = options.maxItems ?? config.options.maxItems
+  const concurrency = config.options.concurrency
+  const maxContentLength = config.options.maxContentLength
 
-  const store = await initStore();
+  const store = await initStore()
   try {
     // Determine lastRunTime: --since flag overrides DB value
-    let lastRunTime: number | null;
+    let lastRunTime: number | null
     if (options.since) {
-      lastRunTime = parseSinceDuration(options.since);
+      lastRunTime = parseSinceDuration(options.since)
     } else {
-      lastRunTime = getLastRunTime(store);
+      lastRunTime = getLastRunTime(store)
     }
 
     // Step 1: Fetch all sources in parallel with concurrency cap
-    const fetchLimit = pLimit(concurrency);
+    const fetchLimit = pLimit(concurrency)
     const fetchResults = await Promise.all(
-      config.sources.map(source =>
+      config.sources.map((source) =>
         fetchLimit(() =>
-          fetchSource(source, lastRunTime, maxItems, maxContentLength)
-            .catch((err): { items: RawItem[]; errors: MarkdownFetchError[] } => {
+          fetchSource(source, lastRunTime, maxItems, maxContentLength).catch(
+            (err): { items: RawItem[]; errors: MarkdownFetchError[] } => {
               // Catch unexpected errors per-source so others can continue
-              const message = err instanceof Error ? err.message : String(err);
+              const message = err instanceof Error ? err.message : String(err)
               return {
                 items: [],
                 errors: [{ sourceName: source.name, url: source.url, error: message }],
-              };
-            })
-        )
-      )
-    );
+              }
+            },
+          ),
+        ),
+      ),
+    )
 
     // Collect all items and errors
-    const allItems: RawItem[] = [];
-    const allErrors: MarkdownFetchError[] = [];
+    const allItems: RawItem[] = []
+    const allErrors: MarkdownFetchError[] = []
     for (const result of fetchResults) {
-      allItems.push(...result.items);
-      allErrors.push(...result.errors);
+      allItems.push(...result.items)
+      allErrors.push(...result.errors)
     }
 
     // Step 2: Filter already-seen items
-    const newItems = allItems.filter(item => !isSeen(store, item.id));
+    const newItems = allItems.filter((item) => !isSeen(store, item.id))
 
     // Step 3: Summarize new items via LLM
-    const llmClient = createLLMClient(config.llm);
-    const summarizeLimit = pLimit(concurrency);
+    const llmClient = createLLMClient(config.llm)
+    const summarizeLimit = pLimit(concurrency)
     const summaryResults = await Promise.all(
-      newItems.map(item =>
+      newItems.map((item) =>
         summarizeLimit(() =>
-          summarizeItem(llmClient, config.llm.model, item.content, item.sourceName)
-        )
-      )
-    );
+          summarizeItem(llmClient, config.llm.model, item.content, item.sourceName),
+        ),
+      ),
+    )
 
     // Build digest items from successful summaries
-    const digestItems: DigestItem[] = [];
+    const digestItems: DigestItem[] = []
     for (let i = 0; i < newItems.length; i++) {
-      const summary = summaryResults[i];
+      const summary = summaryResults[i]
       if (summary !== null) {
         digestItems.push({
           title: summary.title,
@@ -187,36 +193,36 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
           sourceName: newItems[i].sourceName,
           summary: summary.summary,
           importance: summary.importance,
-        });
+        })
       }
     }
 
     // Step 4: Format markdown digest
-    const markdown = formatDigest(digestItems, allErrors.length > 0 ? allErrors : undefined);
+    const markdown = formatDigest(digestItems, allErrors.length > 0 ? allErrors : undefined)
 
     // Step 5: Output
-    let output: string;
+    let output: string
     if (options.output) {
-      writeFileSync(options.output, markdown, 'utf-8');
-      output = `Digest written to ${options.output}`;
+      writeFileSync(options.output, markdown, 'utf-8')
+      output = `Digest written to ${options.output}`
     } else {
-      output = markdown;
+      output = markdown
     }
 
     // Step 6: Update DB state — mark all processed items as seen
     for (const item of newItems) {
-      markSeen(store, item.id, item.sourceName, item.title);
+      markSeen(store, item.id, item.sourceName, item.title)
     }
 
     // Set lastRunTime to now
-    setLastRunTime(store, Date.now());
+    setLastRunTime(store, Date.now())
 
     // Save store
-    store.save();
+    store.save()
 
-    return output;
+    return output
   } finally {
-    await store.close();
+    await store.close()
   }
 }
 
@@ -248,22 +254,24 @@ export default defineCommand({
     },
   },
   async run({ args }) {
-    const configPath = args.config || (() => {
-      // Lazy import to avoid requiring env-paths at module load
-      const { getDefaultConfigPath } = require('../config/loader');
-      return getDefaultConfigPath();
-    })();
+    const configPath =
+      args.config ||
+      (() => {
+        // Lazy import to avoid requiring env-paths at module load
+        const { getDefaultConfigPath } = require('../config/loader')
+        return getDefaultConfigPath()
+      })()
 
     const brewOptions: BrewOptions = {
       configPath,
       maxItems: args['max-items'] ? parseInt(args['max-items'], 10) : undefined,
       output: args.output,
       since: args.since,
-    };
+    }
 
-    const result = await runBrewPipeline(brewOptions);
+    const result = await runBrewPipeline(brewOptions)
     if (!args.output) {
-      logger.log(result);
+      logger.log(result)
     }
   },
-});
+})

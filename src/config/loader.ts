@@ -1,7 +1,7 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import yaml from 'js-yaml';
-import { configSchema, type Config } from './schema';
+import * as fs from 'node:fs'
+import * as path from 'node:path'
+import yaml from 'js-yaml'
+import { configSchema, type Config } from './schema'
 
 /**
  * Resolves environment variable substitutions in string values
@@ -11,27 +11,29 @@ function resolveEnvVars(obj: any): any {
   if (typeof obj === 'string') {
     // Replace ${VAR_NAME} with env var value
     return obj.replace(/\$\{([A-Z_][A-Z0-9_]*)\}/g, (match, varName) => {
-      const value = process.env[varName];
+      const value = process.env[varName]
       if (value === undefined) {
-        throw new Error(`Environment variable '${varName}' is not set (referenced in config as '${match}')`);
+        throw new Error(
+          `Environment variable '${varName}' is not set (referenced in config as '${match}')`,
+        )
       }
-      return value;
-    });
+      return value
+    })
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(resolveEnvVars);
+    return obj.map(resolveEnvVars)
   }
 
   if (obj !== null && typeof obj === 'object') {
-    const result: any = {};
+    const result: any = {}
     for (const key in obj) {
-      result[key] = resolveEnvVars(obj[key]);
+      result[key] = resolveEnvVars(obj[key])
     }
-    return result;
+    return result
   }
 
-  return obj;
+  return obj
 }
 
 /**
@@ -43,40 +45,44 @@ function resolveEnvVars(obj: any): any {
  */
 export function loadConfig(configPath: string): Config {
   if (!fs.existsSync(configPath)) {
-    throw new Error(`Config file not found: ${configPath}`);
+    throw new Error(`Config file not found: ${configPath}`)
   }
 
-  let rawYaml: any;
+  let rawYaml: any
   try {
-    const fileContent = fs.readFileSync(configPath, 'utf-8');
-    rawYaml = yaml.load(fileContent);
+    const fileContent = fs.readFileSync(configPath, 'utf-8')
+    rawYaml = yaml.load(fileContent)
   } catch (error) {
-    throw new Error(`Failed to parse YAML config: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to parse YAML config: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 
   // Resolve environment variables
-  let configWithEnvVars: any;
+  let configWithEnvVars: any
   try {
-    configWithEnvVars = resolveEnvVars(rawYaml);
+    configWithEnvVars = resolveEnvVars(rawYaml)
   } catch (error) {
-    throw new Error(`Failed to resolve environment variables in config: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to resolve environment variables in config: ${error instanceof Error ? error.message : String(error)}`,
+    )
   }
 
   // Validate with Zod schema
-  const validation = configSchema.safeParse(configWithEnvVars);
+  const validation = configSchema.safeParse(configWithEnvVars)
 
   if (!validation.success) {
     const errorMessages = validation.error.issues
       .map((issue) => {
-        const path = issue.path.length > 0 ? issue.path.join('.') : 'root';
-        return `  - ${path}: ${issue.message}`;
+        const path = issue.path.length > 0 ? issue.path.join('.') : 'root'
+        return `  - ${path}: ${issue.message}`
       })
-      .join('\n');
+      .join('\n')
 
-    throw new Error(`Config validation failed:\n${errorMessages}`);
+    throw new Error(`Config validation failed:\n${errorMessages}`)
   }
 
-  return validation.data;
+  return validation.data
 }
 
 /**
@@ -85,9 +91,9 @@ export function loadConfig(configPath: string): Config {
  */
 export function getDefaultConfigPath(): string {
   // We import here to avoid issues
-  const envPaths = require('env-paths');
-  const paths = envPaths('dailybrew');
-  return path.join(paths.config, 'config.yaml');
+  const envPaths = require('env-paths')
+  const paths = envPaths('dailybrew')
+  return path.join(paths.config, 'config.yaml')
 }
 
 /**
@@ -95,6 +101,6 @@ export function getDefaultConfigPath(): string {
  * Supports CLI flag override
  */
 export function loadConfigWithDefaults(configPathOverride?: string): Config {
-  const configPath = configPathOverride || getDefaultConfigPath();
-  return loadConfig(configPath);
+  const configPath = configPathOverride || getDefaultConfigPath()
+  return loadConfig(configPath)
 }

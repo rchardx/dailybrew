@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
-import type { LLMConfig } from '../config/schema';
+import OpenAI from 'openai'
+import type { LLMConfig } from '../config/schema'
 
 /**
  * Create an OpenAI client configured with custom baseURL, apiKey, retries, and timeout.
@@ -10,5 +10,5 @@ export function createLLMClient(config: LLMConfig): OpenAI {
     apiKey: config.apiKey,
     maxRetries: 3,
     timeout: 30_000,
-  });
+  })
 }

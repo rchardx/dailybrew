@@ -13,13 +13,13 @@ Analyze the following content and provide:
    - 2: Mildly interesting, niche relevance
    - 1: Low relevance or redundant information
 
-Respond in the SAME LANGUAGE as the source content.`;
+Respond in the SAME LANGUAGE as the source content.`
 
 /**
  * Build user prompt for structured output mode (zodResponseFormat handles format).
  */
 export function buildUserPrompt(sourceName: string, content: string): string {
-  return `Source: ${sourceName}\nContent:\n${content}`;
+  return `Source: ${sourceName}\nContent:\n${content}`
 }
 
 /**
@@ -31,12 +31,12 @@ Content:
 ${content}
 
 Respond ONLY with a valid JSON object in this exact format (no markdown, no code fences):
-{"title": "...", "summary": "...", "importance": <number 1-5>}`;
+{"title": "...", "summary": "...", "importance": <number 1-5>}`
 }
 
 /**
  * Get the system prompt.
  */
 export function getSystemPrompt(): string {
-  return SYSTEM_PROMPT;
+  return SYSTEM_PROMPT
 }

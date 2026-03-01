@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { configSchema } from '../../src/config/schema';
-import { z } from 'zod';
+import { describe, it, expect } from 'vitest'
+import { configSchema } from '../../src/config/schema'
 
 describe('Config Schema', () => {
   it('should validate a complete valid config', () => {
@@ -22,16 +21,16 @@ describe('Config Schema', () => {
         maxContentLength: 4000,
         concurrency: 5,
       },
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.options.maxItems).toBe(50);
-      expect(result.data.options.maxContentLength).toBe(4000);
-      expect(result.data.options.concurrency).toBe(5);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.options.maxItems).toBe(50)
+      expect(result.data.options.maxContentLength).toBe(4000)
+      expect(result.data.options.concurrency).toBe(5)
+    }
+  })
 
   it('should apply default values for missing options', () => {
     const config = {
@@ -47,16 +46,16 @@ describe('Config Schema', () => {
           type: 'rss' as const,
         },
       ],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.options.maxItems).toBe(50);
-      expect(result.data.options.maxContentLength).toBe(4000);
-      expect(result.data.options.concurrency).toBe(5);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.options.maxItems).toBe(50)
+      expect(result.data.options.maxContentLength).toBe(4000)
+      expect(result.data.options.concurrency).toBe(5)
+    }
+  })
 
   it('should reject config missing llm.baseUrl', () => {
     const config = {
@@ -71,14 +70,14 @@ describe('Config Schema', () => {
           type: 'rss',
         },
       ],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.includes('baseUrl'))).toBe(true);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.includes('baseUrl'))).toBe(true)
+    }
+  })
 
   it('should reject config missing llm.apiKey', () => {
     const config = {
@@ -87,14 +86,14 @@ describe('Config Schema', () => {
         model: 'gpt-4o-mini',
       },
       sources: [],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.includes('apiKey'))).toBe(true);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.includes('apiKey'))).toBe(true)
+    }
+  })
 
   it('should reject config missing llm.model', () => {
     const config = {
@@ -103,14 +102,14 @@ describe('Config Schema', () => {
         apiKey: 'test-key',
       },
       sources: [],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.includes('model'))).toBe(true);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.includes('model'))).toBe(true)
+    }
+  })
 
   it('should reject invalid baseUrl (not a valid URL)', () => {
     const config = {
@@ -120,11 +119,11 @@ describe('Config Schema', () => {
         model: 'gpt-4o-mini',
       },
       sources: [],
-    };
+    }
 
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-  });
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+  })
 
   it('should require url in source entries', () => {
     const config = {
@@ -139,14 +138,14 @@ describe('Config Schema', () => {
           type: 'rss',
         },
       ],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.some((p) => p === 'url'))).toBe(true);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.some((p) => p === 'url'))).toBe(true)
+    }
+  })
 
   it('should require name in source entries', () => {
     const config = {
@@ -161,14 +160,14 @@ describe('Config Schema', () => {
           type: 'rss',
         },
       ],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.some((p) => p === 'name'))).toBe(true);
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path.some((p) => p === 'name'))).toBe(true)
+    }
+  })
 
   it('should allow optional type in source entries', () => {
     const config = {
@@ -183,11 +182,11 @@ describe('Config Schema', () => {
           url: 'https://example.com',
         },
       ],
-    };
+    }
 
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(true);
-  });
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(true)
+  })
 
   it('should allow optional selector in source entries', () => {
     const config = {
@@ -204,14 +203,14 @@ describe('Config Schema', () => {
           selector: 'h2 > a',
         },
       ],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.sources[0].selector).toBe('h2 > a');
     }
-  });
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.sources[0].selector).toBe('h2 > a')
+    }
+  })
 
   it('should provide clear error message for invalid config', () => {
     const config = {
@@ -223,13 +222,13 @@ describe('Config Schema', () => {
           name: 'Test',
         },
       ],
-    };
-
-    const result = configSchema.safeParse(config);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const errors = result.error.issues;
-      expect(errors.length).toBeGreaterThan(0);
     }
-  });
-});
+
+    const result = configSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const errors = result.error.issues
+      expect(errors.length).toBeGreaterThan(0)
+    }
+  })
+})

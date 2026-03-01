@@ -1,8 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-  "organizeImports": {
-    "enabled": false
-  },
+  "$schema": "https://biomejs.dev/schemas/2.4.4/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "off" } } },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -32,6 +30,6 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "*.db", "fixtures", ".changeset"]
+    "includes": ["**", "!**/node_modules", "!**/dist", "!**/*.db", "!**/fixtures", "!**/.changeset"]
   }
 }
