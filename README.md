@@ -25,9 +25,9 @@ cd dailybrew
 pnpm install
 pnpm build
 
-# Install CLI globally or use npm link
+# Install CLI globally
 pnpm add -g .
-# or: npm link
+# or: pnpm link
 ```
 
 ### Verify installation
@@ -52,13 +52,13 @@ dailybrew import feeds.opml
 Or add feeds individually:
 
 ```bash
-dailybrew add https://hnrss.org/frontpage --name "Hacker News"
+dailybrew list add https://hnrss.org/frontpage --name "Hacker News"
 ```
 
 ### 2. Run the digest
 
 ```bash
-dailybrew brew
+dailybrew run
 ```
 
 On first run, dailybrew will interactively prompt you to configure your LLM provider (OpenAI, OpenRouter, Groq, local, or custom). No need to edit YAML manually.
@@ -68,15 +68,15 @@ Output: markdown digest sorted by importance (5=critical, 1=low) on stdout.
 Save to file:
 
 ```bash
-dailybrew brew --output digest.md
+dailybrew run --output digest.md
 ```
 
 ### 3. Manage sources
 
 ```bash
 # Add a source
-dailybrew add https://hnrss.org/frontpage --name "HN"
-dailybrew add https://example.com/blog --type web --selector "article h2 > a"
+dailybrew list add https://hnrss.org/frontpage --name "HN"
+dailybrew list add https://example.com/blog --type web --selector "article h2 > a"
 
 # Import from OPML
 dailybrew import feeds.opml
@@ -85,14 +85,14 @@ dailybrew import feeds.opml
 dailybrew list
 
 # Remove a source
-dailybrew remove https://hnrss.org/frontpage
+dailybrew list remove https://hnrss.org/frontpage
 ```
 
 ## Commands
 
-### `brew`
+### `run`
 
-Fetch all sources, deduplicate against seen items, summarize with LLM, output markdown.
+Fetch all sources, deduplicate against seen items, summarize with LLM, output markdown. This is also the default command when no subcommand is given.
 
 **Flags:**
 
@@ -104,7 +104,7 @@ Fetch all sources, deduplicate against seen items, summarize with LLM, output ma
 **Example:**
 
 ```bash
-dailybrew brew --config ~/my-config.yaml --output digest.md --since 2h
+dailybrew run --config ~/my-config.yaml --output digest.md --since 2h
 ```
 
 ### `init`
@@ -123,7 +123,7 @@ Interactively configure your LLM provider. Supports presets for OpenAI, OpenRout
 dailybrew auth
 ```
 
-This is also triggered automatically by `brew` if no API key is configured.
+This is also triggered automatically by `run` if no API key is configured.
 
 ### `import <file>`
 
@@ -133,42 +133,71 @@ Import RSS feeds from an OPML file (exported from any RSS reader).
 dailybrew import feeds.opml
 ```
 
-### `add <url>`
+### `list`
 
-Add a source to config. Auto-detects RSS vs web; use `--type` to force.
+Manage sources: list, add, and remove.
 
-**Flags:**
+```bash
+# List all sources
+dailybrew list
+
+# Add a source (auto-detects RSS vs web; use --type to force)
+dailybrew list add <url> [--name <name>] [--type rss|web] [--selector <css>]
+
+# Remove a source
+dailybrew list remove <url>
+```
+
+**Flags (for `list add`):**
 
 - `--name <name>` — Custom name for the source
 - `--type <rss|web>` — Force type (default: auto-detect)
-- `--selector <css>` — CSS selector for web pages
+- `--selector <css>` — CSS selector for web pages (implies `--type web`)
 
 **Examples:**
 
 ```bash
-dailybrew add https://hnrss.org/frontpage --name "Hacker News"
-dailybrew add https://antirez.com --type web --selector "h2 > a"
+dailybrew list add https://hnrss.org/frontpage --name "Hacker News"
+dailybrew list add https://antirez.com --type web --selector "h2 > a"
+dailybrew list remove https://hnrss.org/frontpage
 ```
 
-### `remove <url>`
+### `config`
 
-Remove a source from config.
+Show or modify configuration.
 
 ```bash
-dailybrew remove https://hnrss.org/frontpage
+# Show current config
+dailybrew config
+
+# Print config file path only
+dailybrew config --path
+
+# Set a config value
+dailybrew config set <key> <value>
 ```
 
-### `list`
+**Settable keys:**
 
-Show all configured sources.
+- `llm.baseUrl` — LLM API endpoint URL
+- `llm.apiKey` — API key (prefer `DAILYBREW_API_KEY` env var)
+- `llm.model` — Model name (e.g., `gpt-4o`, `deepseek-chat`)
+- `options.maxItems` — Max items per source per run (default: 10)
+- `options.maxContentLength` — Max characters sent to LLM per item (default: 65536)
+- `options.concurrency` — Parallel source fetches (default: 8)
+
+**Examples:**
 
 ```bash
-dailybrew list
+dailybrew config set llm.model gpt-4o
+dailybrew config set options.maxItems 20
 ```
 
 ## Configuration
 
 Config file: `~/.config/dailybrew/config.yaml` (auto-created on first use by any command)
+
+Sources file: `~/.config/dailybrew/sources.yaml` (managed via `dailybrew list add/remove`)
 
 State DB: `~/.local/share/dailybrew/dailybrew.db` (auto-created on first run)
 
@@ -178,7 +207,7 @@ State DB: `~/.local/share/dailybrew/dailybrew.db` (auto-created on first run)
 
 ```bash
 export DAILYBREW_API_KEY=sk-...
-dailybrew brew
+dailybrew run
 ```
 
 ## Output Format
@@ -226,15 +255,15 @@ dailybrew is a **run-once CLI**, not a daemon. Schedule it with your system's ta
 
 ```bash
 # Add to crontab: run every 6 hours
-0 */6 * * * /usr/local/bin/dailybrew brew >> ~/dailybrew.log 2>&1
+0 */6 * * * /usr/local/bin/dailybrew run >> ~/dailybrew.log 2>&1
 ```
 
 **Windows (Task Scheduler):**
 
 Create a scheduled task:
 
-- Action: Run `node C:\path\to\dist\cli.mjs brew`
-- Or: Run `dailybrew brew` (if npm link installed)
+- Action: Run `node C:\path\to\dist\cli.mjs run`
+- Or: Run `dailybrew run` (if pnpm link installed)
 - Frequency: Every 6 hours
 - Redirect output to file
 
@@ -258,7 +287,7 @@ Make sure to export the env var before running:
 
 ```bash
 export DAILYBREW_API_KEY=sk-...
-dailybrew brew
+dailybrew run
 ```
 
 Check it's set:
