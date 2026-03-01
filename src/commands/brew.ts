@@ -17,7 +17,7 @@ import {
 import type { Source } from '../config/schema'
 import type { FetchError as RssFetchError } from '../sources/rss'
 import { logger } from '../utils/logger'
-import { createProgressBar } from '../utils/progress'
+import { createProgressBar, truncateName } from '../utils/progress'
 
 /**
  * Parse a human-readable duration string into a Unix timestamp (ms).
@@ -169,7 +169,7 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
               }
             },
           )
-          fetchBar.increment(1, { stage: `Fetching — ${source.name}` })
+          fetchBar.increment(1, { stage: `Fetching — ${truncateName(source.name)}` })
           return result
         }),
       ),
@@ -231,7 +231,7 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
             item.content,
             item.sourceName,
           )
-          summarizeBar?.increment(1, { stage: `Summarizing — ${item.sourceName}` })
+          summarizeBar?.increment(1, { stage: `Summarizing — ${truncateName(item.sourceName)}` })
           return result
         }),
       ),
@@ -336,7 +336,8 @@ export default defineCommand({
 
     const result = await runBrewPipeline(brewOptions)
     if (!args.output) {
-      logger.log(result)
+      // Write digest to stdout directly — not through logger (which goes to stderr)
+      process.stdout.write(result + '\n')
     }
   },
 })

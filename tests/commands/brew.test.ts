@@ -43,9 +43,13 @@ vi.mock('../../src/output/markdown', () => ({
 
 // Mock progress bar so it doesn't write to stderr during tests
 const mockBar = { start: vi.fn(), increment: vi.fn(), stop: vi.fn() }
-vi.mock('../../src/utils/progress', () => ({
-  createProgressBar: vi.fn(() => mockBar),
-}))
+vi.mock('../../src/utils/progress', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/utils/progress')>()
+  return {
+    ...actual,
+    createProgressBar: vi.fn(() => mockBar),
+  }
+})
 
 import { runBrewPipeline, parseSinceDuration } from '../../src/commands/brew'
 import { loadConfig } from '../../src/config/loader'
