@@ -366,7 +366,7 @@ describe('runBrewPipeline', () => {
     expect(result).toContain('No new content')
   })
 
-  it('should handle first run: no lastRunTime → fetches all (capped by maxItems)', async () => {
+  it('should handle first run: no lastRunTime → defaults to 24h ago', async () => {
     const config = makeConfig()
     vi.mocked(loadConfig).mockReturnValue(config)
     vi.mocked(getLastRunTime).mockReturnValue(null)
@@ -374,11 +374,15 @@ describe('runBrewPipeline', () => {
     vi.mocked(fetchRssFeed).mockResolvedValue({ items: [], errors: [] })
     vi.mocked(formatDigest).mockReturnValue('No new content')
 
+    const beforeRun = Date.now()
     await runBrewPipeline({ configPath: '/test/config.yaml' })
 
-    // On first run, lastRunTime should be null → passed through to fetchers
+    // On first run, lastRunTime should be set to ~24h ago (not null)
     for (const call of vi.mocked(fetchRssFeed).mock.calls) {
-      expect(call[1]).toBeNull()
+      const lastRunArg = call[1]
+      expect(lastRunArg).not.toBeNull()
+      const twentyFourHoursAgo = beforeRun - 24 * 60 * 60 * 1000
+      expect(Math.abs(lastRunArg! - twentyFourHoursAgo)).toBeLessThan(2000)
     }
   })
 

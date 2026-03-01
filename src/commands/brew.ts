@@ -132,6 +132,10 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
   const concurrency = config.options.concurrency
   const maxContentLength = config.options.maxContentLength
 
+  logger.info(
+    `Loaded ${config.sources.length} sources (maxItems=${maxItems}, concurrency=${concurrency})`,
+  )
+
   const store = await initStore()
   try {
     // Determine lastRunTime: --since flag overrides DB value
@@ -142,7 +146,14 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
       lastRunTime = getLastRunTime(store)
     }
 
+    // Default first run to 24h — never fetch the entire feed history
+    if (lastRunTime === null) {
+      lastRunTime = Date.now() - 24 * 60 * 60 * 1000
+      logger.info('First run — fetching items from the last 24 hours')
+    }
+
     // Step 1: Fetch all sources in parallel with concurrency cap
+    logger.start(`Fetching ${config.sources.length} sources...`)
     const fetchLimit = pLimit(concurrency)
     const fetchResults = await Promise.all(
       config.sources.map((source) =>
@@ -160,7 +171,6 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
         ),
       ),
     )
-
     // Collect all items and errors
     const allItems: RawItem[] = []
     const allErrors: MarkdownFetchError[] = []
@@ -169,10 +179,25 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
       allErrors.push(...result.errors)
     }
 
+    const errorSuffix = allErrors.length > 0 ? ` (${allErrors.length} errors)` : ''
+    logger.success(
+      `Fetched ${allItems.length} items from ${config.sources.length} sources${errorSuffix}`,
+    )
+
     // Step 2: Filter already-seen items
     const newItems = allItems.filter((item) => !isSeen(store, item.id))
-
+    const skippedCount = allItems.length - newItems.length
+    if (skippedCount > 0) {
+      logger.info(`${newItems.length} new items (${skippedCount} already seen)`)
+    } else {
+      logger.info(`${newItems.length} new items`)
+    }
     // Step 3: Summarize new items via LLM
+    if (newItems.length === 0) {
+      logger.info('Nothing to summarize')
+    } else {
+      logger.start(`Summarizing ${newItems.length} items with ${config.llm.model}...`)
+    }
     const llmClient = createLLMClient(config.llm)
     const summarizeLimit = pLimit(concurrency)
     const summaryResults = await Promise.all(
@@ -198,6 +223,12 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
       }
     }
 
+    if (newItems.length > 0) {
+      const failedCount = newItems.length - digestItems.length
+      const failSuffix = failedCount > 0 ? ` (${failedCount} failed)` : ''
+      logger.success(`Summarized ${digestItems.length} items${failSuffix}`)
+    }
+
     // Step 4: Format markdown digest
     const markdown = formatDigest(digestItems, allErrors.length > 0 ? allErrors : undefined)
 
@@ -205,6 +236,7 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
     let output: string
     if (options.output) {
       writeFileSync(options.output, markdown, 'utf-8')
+      logger.success(`Digest written to ${options.output}`)
       output = `Digest written to ${options.output}`
     } else {
       output = markdown
