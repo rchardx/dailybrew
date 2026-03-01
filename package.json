@@ -4,6 +4,7 @@
   "description": "LLM-powered RSS/web digest CLI",
   "main": "dist/cli.mjs",
   "type": "module",
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -15,7 +16,7 @@
     "prepare": "husky",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "pnpm run build && changeset publish"
   },
   "lint-staged": {
     "*.{ts,js,json}": [
