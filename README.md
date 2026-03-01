@@ -239,7 +239,7 @@ Create a scheduled task:
 
 ## Requirements
 
-- **Node.js**: 18 or higher
+- **Node.js**: 20 or higher
 - **LLM API**: OpenAI-compatible endpoint (OpenAI, Anthropic Claude via proxy, LM Studio local, etc.)
 - **Network**: Fetch RSS feeds and web pages during run
 

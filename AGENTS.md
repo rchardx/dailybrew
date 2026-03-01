@@ -97,7 +97,7 @@ src/
 - **p-limit**: Concurrency control
 
 ### Environment & Constraints
-- **Node.js >= 18** required
+- **Node.js >= 20** required
 - Cross-platform: Mac/Linux/Windows (no native dependencies)
 - ESM output only (no CommonJS)
 - sql.js WASM must be copied to `dist/` during build
