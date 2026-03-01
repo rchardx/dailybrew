@@ -6,6 +6,9 @@ dist/
 .DS_Store
 *.log
 
+# Test coverage output
+coverage/
+
 # OpenCode agent files
 .sisyphus/
 
