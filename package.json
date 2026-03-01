@@ -1,0 +1,74 @@
+{
+  "name": "dailybrew",
+  "version": "1.0.0",
+  "description": "LLM-powered RSS/web digest CLI",
+  "main": "dist/cli.mjs",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "dev": "vitest",
+    "lint": "tsc --noEmit",
+    "format": "biome check --write .",
+    "check": "biome check .",
+    "prepare": "husky",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "npm run build && changeset publish"
+  },
+  "lint-staged": {
+    "*.{ts,js,json}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  },
+  "bin": {
+    "dailybrew": "./bin/dailybrew.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rchardx/dailybrew.git"
+  },
+  "keywords": [
+    "cli",
+    "rss",
+    "digest",
+    "llm",
+    "news"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rchardx/dailybrew/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "homepage": "https://github.com/rchardx/dailybrew#readme",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "citty": "^0.1.5",
+    "consola": "^3.4.2",
+    "env-paths": "^2.2.1",
+    "js-yaml": "^4.1.0",
+    "openai": "^4.52.0",
+    "p-limit": "^5.0.0",
+    "proper-lockfile": "^4.1.2",
+    "rss-parser": "^3.13.0",
+    "sql.js": "^1.10.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@changesets/cli": "^2.29.8",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.10.6",
+    "@types/proper-lockfile": "^4.1.4",
+    "@vitest/coverage-v8": "^1.6.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.0"
+  }
+}
