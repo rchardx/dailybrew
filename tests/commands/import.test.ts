@@ -1,25 +1,37 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
-import yaml from 'js-yaml'
-import { initConfig } from '../../src/commands/init'
 import { importOpml } from '../../src/commands/import'
+import { loadSources } from '../../src/config/sources'
 
 let tempDir: string
-let configDir: string
-let configPath: string
+let sourcesPath: string
 
-beforeEach(() => {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dailybrew-test-'))
-  configDir = path.join(tempDir, 'config')
-  configPath = path.join(configDir, 'config.yaml')
+// Mock getDefaultSourcesPath and getDefaultConfigPath so the sources module
+// reads/writes to our temp directory instead of the real user config dir.
+vi.mock('../../src/config/loader', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/config/loader')>()
+  return {
+    ...actual,
+    getDefaultConfigPath: vi.fn(),
+  }
+})
+
+beforeEach(async () => {
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dailybrew-import-'))
+  sourcesPath = path.join(tempDir, 'sources.yaml')
+
+  // Point getDefaultConfigPath to temp dir so migration doesn't touch real config
+  const { getDefaultConfigPath } = await import('../../src/config/loader')
+  vi.mocked(getDefaultConfigPath).mockReturnValue(path.join(tempDir, 'config.yaml'))
 })
 
 afterEach(() => {
   if (fs.existsSync(tempDir)) {
     fs.rmSync(tempDir, { recursive: true })
   }
+  vi.restoreAllMocks()
 })
 
 const VALID_OPML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -77,23 +89,16 @@ const TITLE_ATTR_OPML = `<?xml version="1.0" encoding="UTF-8"?>
 </opml>`
 
 describe('import command', () => {
-  beforeEach(() => {
-    fs.mkdirSync(configDir, { recursive: true })
-  })
-
   it('should import all sources from valid OPML file', async () => {
-    await initConfig(configPath)
-
     const opmlPath = path.join(tempDir, 'feeds.opml')
     fs.writeFileSync(opmlPath, VALID_OPML, 'utf-8')
 
-    const result = await importOpml(opmlPath, configPath)
+    const result = await importOpml(opmlPath)
 
     expect(result).toContain('Imported 2 sources')
     expect(result).toContain('0 skipped')
 
-    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>
-    const sources = config.sources as Array<Record<string, unknown>>
+    const sources = loadSources(sourcesPath)
     expect(sources).toHaveLength(2)
     expect(sources[0].url).toBe('https://hnrss.org/frontpage')
     expect(sources[0].name).toBe('Hacker News')
@@ -103,36 +108,31 @@ describe('import command', () => {
   })
 
   it('should skip sources that already exist in config', async () => {
-    await initConfig(configPath)
-
-    // First import
     const opmlPath = path.join(tempDir, 'feeds.opml')
     fs.writeFileSync(opmlPath, VALID_OPML, 'utf-8')
-    await importOpml(opmlPath, configPath)
+
+    // First import
+    await importOpml(opmlPath)
 
     // Second import of same file
-    const result = await importOpml(opmlPath, configPath)
+    const result = await importOpml(opmlPath)
 
     expect(result).toContain('Imported 0 sources')
     expect(result).toContain('2 skipped')
 
-    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>
-    const sources = config.sources as Array<Record<string, unknown>>
+    const sources = loadSources(sourcesPath)
     expect(sources).toHaveLength(2)
   })
 
   it('should handle nested OPML outlines (folders)', async () => {
-    await initConfig(configPath)
-
     const opmlPath = path.join(tempDir, 'nested.opml')
     fs.writeFileSync(opmlPath, NESTED_OPML, 'utf-8')
 
-    const result = await importOpml(opmlPath, configPath)
+    const result = await importOpml(opmlPath)
 
     expect(result).toContain('Imported 3 sources')
 
-    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>
-    const sources = config.sources as Array<Record<string, unknown>>
+    const sources = loadSources(sourcesPath)
     expect(sources).toHaveLength(3)
     expect(sources[0].name).toBe('Hacker News')
     expect(sources[1].name).toBe('TechCrunch')
@@ -140,66 +140,44 @@ describe('import command', () => {
   })
 
   it('should handle OPML with no RSS outlines', async () => {
-    await initConfig(configPath)
-
     const opmlPath = path.join(tempDir, 'empty.opml')
     fs.writeFileSync(opmlPath, NO_RSS_OPML, 'utf-8')
 
-    const result = await importOpml(opmlPath, configPath)
+    const result = await importOpml(opmlPath)
 
     expect(result).toContain('Imported 0 sources')
     expect(result).toContain('0 skipped')
   })
 
   it('should throw error for non-existent OPML file', async () => {
-    await initConfig(configPath)
-
     const opmlPath = path.join(tempDir, 'nonexistent.opml')
 
-    await expect(importOpml(opmlPath, configPath)).rejects.toThrow('OPML file not found')
-  })
-
-  it('should auto-create config file when missing', async () => {
-    const opmlPath = path.join(tempDir, 'feeds.opml')
-    fs.writeFileSync(opmlPath, VALID_OPML, 'utf-8')
-
-    const missingConfigPath = path.join(tempDir, 'missing', 'config.yaml')
-
-    // Should auto-create config and import successfully
-    const result = await importOpml(opmlPath, missingConfigPath)
-    expect(result).toContain('Imported')
-    expect(fs.existsSync(missingConfigPath)).toBe(true)
+    await expect(importOpml(opmlPath)).rejects.toThrow('OPML file not found')
   })
 
   it('should handle OPML with missing xmlUrl attributes gracefully', async () => {
-    await initConfig(configPath)
-
     const opmlPath = path.join(tempDir, 'partial.opml')
     fs.writeFileSync(opmlPath, MISSING_URL_OPML, 'utf-8')
 
-    const result = await importOpml(opmlPath, configPath)
+    const result = await importOpml(opmlPath)
 
     expect(result).toContain('Imported 2 sources')
 
-    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>
-    const sources = config.sources as Array<Record<string, unknown>>
+    const sources = loadSources(sourcesPath)
     expect(sources).toHaveLength(2)
     expect(sources[0].url).toBe('https://hnrss.org/frontpage')
     expect(sources[1].url).toBe('https://techcrunch.com/feed/')
   })
 
   it('should use text/title as source name', async () => {
-    await initConfig(configPath)
-
     const opmlPath = path.join(tempDir, 'titles.opml')
     fs.writeFileSync(opmlPath, TITLE_ATTR_OPML, 'utf-8')
 
-    const result = await importOpml(opmlPath, configPath)
+    const result = await importOpml(opmlPath)
 
     expect(result).toContain('Imported 4 sources')
 
-    const config = yaml.load(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>
-    const sources = config.sources as Array<Record<string, unknown>>
+    const sources = loadSources(sourcesPath)
     expect(sources).toHaveLength(4)
     // title attribute used when text is not present
     expect(sources[0].name).toBe('Title Feed')

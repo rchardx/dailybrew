@@ -10,6 +10,21 @@ vi.mock('../../src/config/loader', () => ({
   getDefaultConfigPath: vi.fn(() => '/default/config.yaml'),
 }))
 
+vi.mock('../../src/config/sources', () => ({
+  loadSources: vi.fn(),
+}))
+
+vi.mock('../../src/utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    success: vi.fn(),
+    fail: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    start: vi.fn(),
+  },
+}))
+
 vi.mock('../../src/db/store', () => ({
   initStore: vi.fn(),
 }))
@@ -61,6 +76,7 @@ import { fetchWebPage } from '../../src/sources/web'
 import { createLLMClient } from '../../src/llm/client'
 import { summarizeItem } from '../../src/llm/summarize'
 import { formatDigest } from '../../src/output/markdown'
+import { loadSources } from '../../src/config/sources'
 import type { Config } from '../../src/config/schema'
 import type { Store } from '../../src/db/store'
 
@@ -72,10 +88,6 @@ function makeConfig(overrides?: Partial<Config>): Config {
       apiKey: 'test-key',
       model: 'test-model',
     },
-    sources: [
-      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
-      { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
-    ],
     options: {
       maxItems: 10,
       maxContentLength: 65536,
@@ -148,6 +160,10 @@ describe('runPipeline', () => {
     vi.mocked(getLastRunTime).mockReturnValue(null)
     vi.mocked(isSeen).mockReturnValue(false)
     vi.mocked(createLLMClient).mockReturnValue({} as any)
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+      { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
+    ])
   })
 
   it('should run full pipeline: config → fetch → dedup → LLM → markdown → stdout', async () => {
@@ -200,9 +216,10 @@ describe('runPipeline', () => {
   })
 
   it('should use --config flag to override default config path', async () => {
-    const config = makeConfig({ sources: [] })
+    const config = makeConfig()
     vi.mocked(loadConfig).mockReturnValue(config)
     vi.mocked(formatDigest).mockReturnValue('No new content')
+    vi.mocked(loadSources).mockReturnValue([])
 
     await runPipeline({ configPath: '/custom/path.yaml' })
 
@@ -225,8 +242,9 @@ describe('runPipeline', () => {
   })
 
   it('should use --output flag to write to file instead of returning stdout', async () => {
-    const config = makeConfig({ sources: [] })
+    const config = makeConfig()
     vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
     vi.mocked(formatDigest).mockReturnValue('# Daily Digest\n\nTest content')
 
     const outputPath = path.join(tempDir, 'output.md')
@@ -262,13 +280,12 @@ describe('runPipeline', () => {
   })
 
   it('should handle mixed sources: 2 RSS + 1 web in same config', async () => {
-    const config = makeConfig({
-      sources: [
-        { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
-        { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
-        { name: 'Antirez', url: 'http://antirez.com', type: 'web', selector: 'h2 > a' },
-      ],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+      { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
+      { name: 'Antirez', url: 'http://antirez.com', type: 'web', selector: 'h2 > a' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchRssFeed)
@@ -315,13 +332,12 @@ describe('runPipeline', () => {
   })
 
   it('should handle partial failure: 1 source fails, 2 succeed → output includes successes + errors', async () => {
-    const config = makeConfig({
-      sources: [
-        { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
-        { name: 'Broken', url: 'https://broken.com/feed', type: 'rss' },
-        { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
-      ],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+      { name: 'Broken', url: 'https://broken.com/feed', type: 'rss' },
+      { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchRssFeed)
@@ -404,8 +420,8 @@ describe('runPipeline', () => {
       url: `https://src${i}.com/rss`,
       type: 'rss' as const,
     }))
+    vi.mocked(loadSources).mockReturnValue(sources)
     const config = makeConfig({
-      sources,
       options: { maxItems: 50, maxContentLength: 65536, concurrency: 3 },
     })
     vi.mocked(loadConfig).mockReturnValue(config)
@@ -479,9 +495,10 @@ describe('runPipeline', () => {
   })
 
   it('should filter out already-seen items via dedup', async () => {
-    const config = makeConfig({
-      sources: [{ name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' }],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchRssFeed).mockResolvedValueOnce({
@@ -508,9 +525,10 @@ describe('runPipeline', () => {
   })
 
   it('should filter out items with empty content before sending to LLM', async () => {
-    const config = makeConfig({
-      sources: [{ name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' }],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchRssFeed).mockResolvedValueOnce({
@@ -553,9 +571,10 @@ describe('runPipeline', () => {
   })
 
   it('should skip null LLM results (failed summaries)', async () => {
-    const config = makeConfig({
-      sources: [{ name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' }],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchRssFeed).mockResolvedValueOnce({
@@ -602,9 +621,10 @@ describe('runPipeline', () => {
   })
 
   it('should normalize web FetchError to markdown FetchError format', async () => {
-    const config = makeConfig({
-      sources: [{ name: 'Antirez', url: 'http://antirez.com', type: 'web', selector: 'h2 > a' }],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'Antirez', url: 'http://antirez.com', type: 'web', selector: 'h2 > a' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchWebPage).mockResolvedValueOnce({
@@ -626,9 +646,10 @@ describe('runPipeline', () => {
   })
 
   it('should normalize RSS FetchError to markdown FetchError format', async () => {
-    const config = makeConfig({
-      sources: [{ name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' }],
-    })
+    const config = makeConfig()
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+    ])
     vi.mocked(loadConfig).mockReturnValue(config)
 
     vi.mocked(fetchRssFeed).mockResolvedValueOnce({

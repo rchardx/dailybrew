@@ -32,7 +32,7 @@ describe('ensureConfig', () => {
     const content = fs.readFileSync(configPath, 'utf-8')
     expect(content).toContain('dailybrew configuration')
     expect(content).toContain('llm:')
-    expect(content).toContain('sources:')
+    // sources are now in sources.yaml, not config.yaml
     expect(content).toContain('options:')
   })
 

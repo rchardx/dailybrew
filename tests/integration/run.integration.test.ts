@@ -3,6 +3,7 @@
  *
  * Uses real file system (temp dirs), real SQLite via sql.js, real config loading,
  * real markdown formatting — but mocks network (fetch) and LLM (OpenAI SDK).
+ * Also mocks loadSources to prevent loading from the user's real sources.yaml.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import * as fs from 'node:fs'
@@ -10,6 +11,7 @@ import * as path from 'node:path'
 import * as os from 'node:os'
 import yaml from 'js-yaml'
 import OpenAI from 'openai'
+import { loadSources } from '../../src/config/sources'
 
 // We mock only external I/O: network fetch and OpenAI SDK
 vi.mock('openai', () => {
@@ -24,6 +26,15 @@ vi.mock('openai', () => {
   }
   ;(MockOpenAI as any).APIError = APIError
   return { default: MockOpenAI, APIError }
+})
+
+// Mock loadSources so tests don't pick up the user's real sources.yaml
+vi.mock('../../src/config/sources', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/config/sources')>()
+  return {
+    ...actual,
+    loadSources: vi.fn(() => []),
+  }
 })
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -153,6 +164,11 @@ describe('Integration: Full Brew Pipeline', () => {
       options: { maxItems: 10, concurrency: 2 },
     })
 
+    // Mock loadSources to return our test sources instead of real sources.yaml
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'TestFeed', url: 'https://test-feed.com/rss', type: 'rss' },
+    ])
+
     // Mock RSS feed fetch
     const now = new Date()
     const rssXml = makeRssXml([
@@ -232,6 +248,11 @@ describe('Integration: Full Brew Pipeline', () => {
       options: { maxItems: 10, concurrency: 1 },
     })
 
+    // Mock loadSources to return our test sources
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'DedupFeed', url: 'https://dedup-feed.com/rss', type: 'rss' },
+    ])
+
     const now = new Date()
     const rssXml = makeRssXml([
       {
@@ -307,6 +328,12 @@ describe('Integration: Full Brew Pipeline', () => {
       ],
       options: { maxItems: 5, concurrency: 2 },
     })
+
+    // Mock loadSources to return our test sources
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'RSSSource', url: 'https://rss-source.com/feed.xml', type: 'rss' },
+      { name: 'WebSource', url: 'https://web-source.com', type: 'web', selector: 'article h2 a' },
+    ])
 
     const now = new Date()
     const rssXml = makeRssXml([
@@ -390,6 +417,12 @@ describe('Integration: Full Brew Pipeline', () => {
       options: { maxItems: 10, concurrency: 2 },
     })
 
+    // Mock loadSources to return our test sources
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'GoodFeed', url: 'https://good-feed.com/rss', type: 'rss' },
+      { name: 'BrokenFeed', url: 'https://broken-feed.com/rss', type: 'rss' },
+    ])
+
     const now = new Date()
     const goodRss = makeRssXml([
       {
@@ -452,6 +485,11 @@ describe('Integration: Full Brew Pipeline', () => {
       options: { maxItems: 5, concurrency: 1 },
     })
 
+    // Mock loadSources to return our test sources
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'OutputFeed', url: 'https://output-feed.com/rss', type: 'rss' },
+    ])
+
     const now = new Date()
     const rssXml = makeRssXml([
       {
@@ -503,6 +541,11 @@ describe('Integration: Full Brew Pipeline', () => {
       sources: [{ name: 'SinceFeed', url: 'https://since-feed.com/rss', type: 'rss' }],
       options: { maxItems: 10, concurrency: 1 },
     })
+
+    // Mock loadSources to return our test sources
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'SinceFeed', url: 'https://since-feed.com/rss', type: 'rss' },
+    ])
 
     const now = new Date()
     const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000)
@@ -561,6 +604,11 @@ describe('Integration: Full Brew Pipeline', () => {
       sources: [{ name: 'SortFeed', url: 'https://sort-feed.com/rss', type: 'rss' }],
       options: { maxItems: 10, concurrency: 1 },
     })
+
+    // Mock loadSources to return our test sources
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'SortFeed', url: 'https://sort-feed.com/rss', type: 'rss' },
+    ])
 
     const now = new Date()
     const rssXml = makeRssXml([

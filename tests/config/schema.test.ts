@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { configSchema } from '../../src/config/schema'
+import { configSchema, sourceSchema } from '../../src/config/schema'
 
 describe('Config Schema', () => {
   it('should validate a complete valid config', () => {
@@ -125,90 +125,64 @@ describe('Config Schema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('should require url in source entries', () => {
+  it('should validate source schema separately', () => {
+    const validSource = {
+      name: 'Hacker News',
+      url: 'https://hnrss.org/frontpage',
+      type: 'rss',
+    }
+    expect(sourceSchema.safeParse(validSource).success).toBe(true)
+
+    // Missing url
+    const noUrl = { name: 'Missing URL Source', type: 'rss' }
+    const noUrlResult = sourceSchema.safeParse(noUrl)
+    expect(noUrlResult.success).toBe(false)
+    if (!noUrlResult.success) {
+      expect(
+        noUrlResult.error.issues.some((issue: any) => issue.path.some((p: any) => p === 'url')),
+      ).toBe(true)
+    }
+
+    // Missing name
+    const noName = { url: 'https://hnrss.org/frontpage', type: 'rss' }
+    const noNameResult = sourceSchema.safeParse(noName)
+    expect(noNameResult.success).toBe(false)
+    if (!noNameResult.success) {
+      expect(
+        noNameResult.error.issues.some((issue: any) => issue.path.some((p: any) => p === 'name')),
+      ).toBe(true)
+    }
+
+    // Optional type
+    const noType = { name: 'Source without type', url: 'https://example.com' }
+    expect(sourceSchema.safeParse(noType).success).toBe(true)
+
+    // Optional selector
+    const withSelector = {
+      name: 'Web source with selector',
+      url: 'https://example.com',
+      type: 'web',
+      selector: 'h2 > a',
+    }
+    const selectorResult = sourceSchema.safeParse(withSelector)
+    expect(selectorResult.success).toBe(true)
+    if (selectorResult.success) {
+      expect(selectorResult.data.selector).toBe('h2 > a')
+    }
+  })
+
+  it('should provide clear error message for invalid config', () => {
     const config = {
       llm: {
         baseUrl: 'https://api.openai.com/v1',
-        apiKey: 'test-key',
-        model: 'gpt-4o-mini',
       },
-      sources: [
-        {
-          name: 'Missing URL Source',
-          type: 'rss',
-        },
-      ],
     }
 
     const result = configSchema.safeParse(config)
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.some((p) => p === 'url'))).toBe(true)
-    }
-  })
-
-  it('should require name in source entries', () => {
-    const config = {
-      llm: {
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: 'test-key',
-        model: 'gpt-4o-mini',
-      },
-      sources: [
-        {
-          url: 'https://hnrss.org/frontpage',
-          type: 'rss',
-        },
-      ],
-    }
-
-    const result = configSchema.safeParse(config)
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues.some((issue) => issue.path.some((p) => p === 'name'))).toBe(true)
-    }
-  })
-
-  it('should allow optional type in source entries', () => {
-    const config = {
-      llm: {
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: 'test-key',
-        model: 'gpt-4o-mini',
-      },
-      sources: [
-        {
-          name: 'Source without type',
-          url: 'https://example.com',
-        },
-      ],
-    }
-
-    const result = configSchema.safeParse(config)
-    expect(result.success).toBe(true)
-  })
-
-  it('should allow optional selector in source entries', () => {
-    const config = {
-      llm: {
-        baseUrl: 'https://api.openai.com/v1',
-        apiKey: 'test-key',
-        model: 'gpt-4o-mini',
-      },
-      sources: [
-        {
-          name: 'Web source with selector',
-          url: 'https://example.com',
-          type: 'web',
-          selector: 'h2 > a',
-        },
-      ],
-    }
-
-    const result = configSchema.safeParse(config)
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.sources[0].selector).toBe('h2 > a')
+      const errors = result.error.issues
+      expect(errors.length).toBeGreaterThan(0)
     }
   })
 

@@ -25,11 +25,6 @@ llm:
   apiKey: "test-key-123"
   model: "gpt-4o-mini"
 
-sources:
-  - name: "Hacker News"
-    url: "https://hnrss.org/frontpage"
-    type: rss
-
 options:
   maxItems: 10
   maxContentLength: 65536
@@ -41,8 +36,6 @@ options:
     expect(config.llm.baseUrl).toBe('https://api.openai.com/v1')
     expect(config.llm.apiKey).toBe('test-key-123')
     expect(config.llm.model).toBe('gpt-4o-mini')
-    expect(config.sources).toHaveLength(1)
-    expect(config.sources[0].name).toBe('Hacker News')
     expect(config.options.maxItems).toBe(10)
   })
 
@@ -55,8 +48,6 @@ llm:
   baseUrl: "https://api.openai.com/v1"
   apiKey: "\${TEST_API_KEY}"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -75,8 +66,6 @@ llm:
   baseUrl: "https://api.openai.com/v1"
   apiKey: "\${DAILYBREW_API_KEY}"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -93,8 +82,6 @@ llm:
   baseUrl: "https://api.openai.com/v1"
   apiKey: "\${NONEXISTENT_VAR}"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -111,8 +98,6 @@ llm:
   baseUrl: "\${BASE_URL}"
   apiKey: "\${API_KEY}"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -131,8 +116,6 @@ llm:
   baseUrl: "https://api.openai.com/v1"
   apiKey: "test-key"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -161,15 +144,13 @@ sources: []
 llm:
   baseUrl: "https://api.openai.com/v1"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
     expect(() => loadConfig(configPath)).toThrow(/apiKey/)
   })
 
-  it('should handle sources with all fields', () => {
+  it('should ignore extra fields in YAML (like sources)', () => {
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
@@ -185,34 +166,10 @@ sources:
 `
     fs.writeFileSync(configPath, configContent)
 
+    // loadConfig should succeed — sources are ignored by configSchema
     const config = loadConfig(configPath)
-    expect(config.sources[0].selector).toBe('h2 > a')
-    expect(config.sources[0].type).toBe('web')
-  })
-
-  it('should handle multiple sources', () => {
-    const configPath = path.join(tempDir, 'config.yaml')
-    const configContent = `
-llm:
-  baseUrl: "https://api.openai.com/v1"
-  apiKey: "test-key"
-  model: "gpt-4o-mini"
-
-sources:
-  - name: "HN"
-    url: "https://hnrss.org/frontpage"
-    type: rss
-  - name: "Antirez"
-    url: "http://antirez.com/"
-    type: web
-    selector: "h2 > a"
-  - name: "Example"
-    url: "https://example.com"
-`
-    fs.writeFileSync(configPath, configContent)
-
-    const config = loadConfig(configPath)
-    expect(config.sources).toHaveLength(3)
+    expect(config.llm.apiKey).toBe('test-key')
+    expect(config.options.maxItems).toBe(10) // default applied
   })
 
   it('should support both DAILYBREW_API_KEY and explicit env var substitution', () => {
@@ -224,8 +181,6 @@ llm:
   baseUrl: "https://api.openai.com/v1"
   apiKey: "\${DAILYBREW_API_KEY}"
   model: "gpt-4o-mini"
-
-sources: []
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -233,28 +188,5 @@ sources: []
     expect(config.llm.apiKey).toBe('key-from-env')
 
     delete process.env.DAILYBREW_API_KEY
-  })
-
-  it('should resolve env var in source URL field', () => {
-    process.env.FEED_URL = 'https://example.com/feed'
-
-    const configPath = path.join(tempDir, 'config.yaml')
-    const configContent = `
-llm:
-  baseUrl: "https://api.openai.com/v1"
-  apiKey: "test-key"
-  model: "gpt-4o-mini"
-
-sources:
-  - name: "Dynamic Feed"
-    url: "\${FEED_URL}"
-    type: rss
-`
-    fs.writeFileSync(configPath, configContent)
-
-    const config = loadConfig(configPath)
-    expect(config.sources[0].url).toBe('https://example.com/feed')
-
-    delete process.env.FEED_URL
   })
 })
