@@ -17,18 +17,18 @@ describe('Config Schema', () => {
         },
       ],
       options: {
-        maxItems: 50,
-        maxContentLength: 4000,
-        concurrency: 5,
+        maxItems: 10,
+        maxContentLength: 65536,
+        concurrency: 8,
       },
     }
 
     const result = configSchema.safeParse(config)
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.options.maxItems).toBe(50)
-      expect(result.data.options.maxContentLength).toBe(4000)
-      expect(result.data.options.concurrency).toBe(5)
+      expect(result.data.options.maxItems).toBe(10)
+      expect(result.data.options.maxContentLength).toBe(65536)
+      expect(result.data.options.concurrency).toBe(8)
     }
   })
 
@@ -51,9 +51,9 @@ describe('Config Schema', () => {
     const result = configSchema.safeParse(config)
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.options.maxItems).toBe(50)
-      expect(result.data.options.maxContentLength).toBe(4000)
-      expect(result.data.options.concurrency).toBe(5)
+      expect(result.data.options.maxItems).toBe(10)
+      expect(result.data.options.maxContentLength).toBe(65536)
+      expect(result.data.options.concurrency).toBe(8)
     }
   })
 

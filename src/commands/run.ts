@@ -4,7 +4,7 @@ import pLimit from 'p-limit'
 import { loadConfig } from '../config/loader'
 import { ensureConfig, ensureAuth } from '../config/ensure'
 import { initStore } from '../db/store'
-import { isSeen, markSeen, getLastRunTime, setLastRunTime } from '../db/dedup'
+import { isSeen, markSeen, getLastRunTime, setLastRunTime, pruneSeen } from '../db/dedup'
 import { fetchRssFeed } from '../sources/rss'
 import { fetchWebPage } from '../sources/web'
 import { createLLMClient } from '../llm/client'
@@ -60,8 +60,8 @@ function normalizeRssError(err: RssFetchError, sourceUrl: string): MarkdownFetch
   }
 }
 
-/** Options for the brew pipeline */
-export interface BrewOptions {
+/** Options for the run pipeline */
+export interface RunOptions {
   configPath: string
   maxItems?: number
   output?: string
@@ -112,7 +112,7 @@ async function fetchSource(
 }
 
 /**
- * Run the full brew pipeline.
+ * Run the full digest pipeline.
  * Extracted as a testable function separate from the citty command definition.
  *
  * Pipeline:
@@ -127,7 +127,7 @@ async function fetchSource(
  * 9. Mark items as seen + update lastRunTime
  * 10. Save + close store
  */
-export async function runBrewPipeline(options: BrewOptions): Promise<string> {
+export async function runPipeline(options: RunOptions): Promise<string> {
   const config = loadConfig(options.configPath)
   const maxItems = options.maxItems ?? config.options.maxItems
   const concurrency = config.options.concurrency
@@ -281,6 +281,12 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
     // Set lastRunTime to now
     setLastRunTime(store, Date.now())
 
+    // Prune old seen items (>14 days)
+    const pruned = pruneSeen(store)
+    if (pruned > 0) {
+      logger.info(`Pruned ${pruned} seen items older than 14 days`)
+    }
+
     // Save store
     store.save()
     logger.success('Database updated')
@@ -291,11 +297,11 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
 }
 
 /**
- * Citty command definition for `brew`
+ * Citty command definition for `run`
  */
 export default defineCommand({
   meta: {
-    name: 'brew',
+    name: 'run',
     description: 'Fetch sources, summarize with LLM, and output markdown digest',
   },
   args: {
@@ -323,18 +329,18 @@ export default defineCommand({
     // Auto-prompt for LLM auth if not configured
     const authOk = await ensureAuth(configPath)
     if (!authOk) {
-      logger.warn('LLM auth setup cancelled. Cannot brew without LLM configuration.')
+      logger.warn('LLM auth setup cancelled. Cannot run without LLM configuration.')
       return
     }
 
-    const brewOptions: BrewOptions = {
+    const runOptions: RunOptions = {
       configPath,
       maxItems: args['max-items'] ? parseInt(args['max-items'], 10) : undefined,
       output: args.output,
       since: args.since,
     }
 
-    const result = await runBrewPipeline(brewOptions)
+    const result = await runPipeline(runOptions)
     if (!args.output) {
       // Write digest to stdout directly — not through logger (which goes to stderr)
       process.stdout.write(result + '\n')

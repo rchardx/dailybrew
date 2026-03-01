@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
 
-// Mock all dependencies before importing brew module
+// Mock all dependencies before importing run module
 vi.mock('../../src/config/loader', () => ({
   loadConfig: vi.fn(),
   loadConfigWithDefaults: vi.fn(),
@@ -19,6 +19,7 @@ vi.mock('../../src/db/dedup', () => ({
   markSeen: vi.fn(),
   getLastRunTime: vi.fn(),
   setLastRunTime: vi.fn(),
+  pruneSeen: vi.fn().mockReturnValue(0),
 }))
 
 vi.mock('../../src/sources/rss', () => ({
@@ -51,10 +52,10 @@ vi.mock('../../src/utils/progress', async (importOriginal) => {
   }
 })
 
-import { runBrewPipeline, parseSinceDuration } from '../../src/commands/brew'
+import { runPipeline, parseSinceDuration } from '../../src/commands/run'
 import { loadConfig } from '../../src/config/loader'
 import { initStore } from '../../src/db/store'
-import { isSeen, markSeen, getLastRunTime, setLastRunTime } from '../../src/db/dedup'
+import { isSeen, markSeen, getLastRunTime, setLastRunTime, pruneSeen } from '../../src/db/dedup'
 import { fetchRssFeed } from '../../src/sources/rss'
 import { fetchWebPage } from '../../src/sources/web'
 import { createLLMClient } from '../../src/llm/client'
@@ -76,9 +77,9 @@ function makeConfig(overrides?: Partial<Config>): Config {
       { name: 'Lobsters', url: 'https://lobste.rs/rss', type: 'rss' },
     ],
     options: {
-      maxItems: 50,
-      maxContentLength: 4000,
-      concurrency: 5,
+      maxItems: 10,
+      maxContentLength: 65536,
+      concurrency: 8,
     },
     ...overrides,
   }
@@ -98,7 +99,7 @@ let tempDir: string
 
 beforeEach(() => {
   vi.clearAllMocks()
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dailybrew-brew-'))
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dailybrew-run-'))
   // Suppress console output during tests
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -138,7 +139,7 @@ describe('parseSinceDuration', () => {
   })
 })
 
-describe('runBrewPipeline', () => {
+describe('runPipeline', () => {
   let mockStore: Store
 
   beforeEach(() => {
@@ -188,7 +189,7 @@ describe('runBrewPipeline', () => {
     // Markdown formatter
     vi.mocked(formatDigest).mockReturnValue('# Daily Digest\n\n## Item 1\n## Item 2')
 
-    const result = await runBrewPipeline({ configPath: '/test/config.yaml' })
+    const result = await runPipeline({ configPath: '/test/config.yaml' })
 
     expect(loadConfig).toHaveBeenCalledWith('/test/config.yaml')
     expect(initStore).toHaveBeenCalled()
@@ -203,7 +204,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(loadConfig).mockReturnValue(config)
     vi.mocked(formatDigest).mockReturnValue('No new content')
 
-    await runBrewPipeline({ configPath: '/custom/path.yaml' })
+    await runPipeline({ configPath: '/custom/path.yaml' })
 
     expect(loadConfig).toHaveBeenCalledWith('/custom/path.yaml')
   })
@@ -215,9 +216,9 @@ describe('runBrewPipeline', () => {
     vi.mocked(fetchRssFeed).mockResolvedValue({ items: [], errors: [] })
     vi.mocked(formatDigest).mockReturnValue('No new content')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml', maxItems: 10 })
+    await runPipeline({ configPath: '/test/config.yaml', maxItems: 10 })
 
-    // fetchRssFeed should be called with maxItems=10 instead of config default 50
+    // fetchRssFeed should be called with maxItems=10 instead of config default 10
     for (const call of vi.mocked(fetchRssFeed).mock.calls) {
       expect(call[2]).toBe(10)
     }
@@ -229,7 +230,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(formatDigest).mockReturnValue('# Daily Digest\n\nTest content')
 
     const outputPath = path.join(tempDir, 'output.md')
-    const result = await runBrewPipeline({ configPath: '/test/config.yaml', output: outputPath })
+    const result = await runPipeline({ configPath: '/test/config.yaml', output: outputPath })
 
     expect(fs.existsSync(outputPath)).toBe(true)
     const fileContent = fs.readFileSync(outputPath, 'utf-8')
@@ -246,7 +247,7 @@ describe('runBrewPipeline', () => {
 
     // Override with "2h" — should use the parsed timestamp instead of DB lastRunTime
     const beforeRun = Date.now()
-    await runBrewPipeline({ configPath: '/test/config.yaml', since: '2h' })
+    await runPipeline({ configPath: '/test/config.yaml', since: '2h' })
 
     // getLastRunTime should NOT be called when --since is provided
     // (or if called, its result should be ignored)
@@ -306,7 +307,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(summarizeItem).mockResolvedValue({ title: 'Sum', summary: 'S', importance: 3 })
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     expect(fetchRssFeed).toHaveBeenCalledTimes(2)
     expect(fetchWebPage).toHaveBeenCalledTimes(1)
@@ -350,7 +351,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(summarizeItem).mockResolvedValue({ title: 'Sum', summary: 'S', importance: 3 })
     vi.mocked(formatDigest).mockReturnValue('# Digest with errors')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     // Should still summarize the 2 successful items
     expect(summarizeItem).toHaveBeenCalledTimes(2)
@@ -370,7 +371,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(fetchRssFeed).mockResolvedValue({ items: [], errors: [] })
     vi.mocked(formatDigest).mockReturnValue('# Daily Digest\n\nNo new content')
 
-    const result = await runBrewPipeline({ configPath: '/test/config.yaml' })
+    const result = await runPipeline({ configPath: '/test/config.yaml' })
 
     expect(summarizeItem).not.toHaveBeenCalled()
     expect(result).toContain('No new content')
@@ -385,7 +386,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(formatDigest).mockReturnValue('No new content')
 
     const beforeRun = Date.now()
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     // On first run, lastRunTime should be set to ~24h ago (not null)
     for (const call of vi.mocked(fetchRssFeed).mock.calls) {
@@ -405,7 +406,7 @@ describe('runBrewPipeline', () => {
     }))
     const config = makeConfig({
       sources,
-      options: { maxItems: 50, maxContentLength: 4000, concurrency: 3 },
+      options: { maxItems: 50, maxContentLength: 65536, concurrency: 3 },
     })
     vi.mocked(loadConfig).mockReturnValue(config)
 
@@ -424,7 +425,7 @@ describe('runBrewPipeline', () => {
 
     vi.mocked(formatDigest).mockReturnValue('No new content')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     expect(fetchRssFeed).toHaveBeenCalledTimes(10)
     expect(maxConcurrent).toBeLessThanOrEqual(3)
@@ -458,7 +459,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
     const beforeRun = Date.now()
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
     const afterRun = Date.now()
 
     // Both items should be marked as seen
@@ -497,7 +498,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(summarizeItem).mockResolvedValue({ title: 'Sum', summary: 'S', importance: 3 })
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     // Only the new item should be summarized
     expect(summarizeItem).toHaveBeenCalledTimes(1)
@@ -543,7 +544,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(summarizeItem).mockResolvedValue({ title: 'Sum', summary: 'S', importance: 3 })
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     // Only items with actual content should be sent to LLM (2 out of 4)
     expect(summarizeItem).toHaveBeenCalledTimes(2)
@@ -572,7 +573,7 @@ describe('runBrewPipeline', () => {
 
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     // formatDigest should only receive 1 item (the non-null one)
     const formatCall = vi.mocked(formatDigest).mock.calls[0]
@@ -591,7 +592,7 @@ describe('runBrewPipeline', () => {
     vi.mocked(formatDigest).mockReturnValue('')
 
     try {
-      await runBrewPipeline({ configPath: '/test/config.yaml' })
+      await runPipeline({ configPath: '/test/config.yaml' })
     } catch {
       // Expected to throw
     }
@@ -613,7 +614,7 @@ describe('runBrewPipeline', () => {
 
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     // formatDigest errors should be in the markdown FetchError format
     const formatCall = vi.mocked(formatDigest).mock.calls[0]
@@ -637,7 +638,7 @@ describe('runBrewPipeline', () => {
 
     vi.mocked(formatDigest).mockReturnValue('# Digest')
 
-    await runBrewPipeline({ configPath: '/test/config.yaml' })
+    await runPipeline({ configPath: '/test/config.yaml' })
 
     const formatCall = vi.mocked(formatDigest).mock.calls[0]
     const errorsArg = formatCall[1]

@@ -25,9 +25,9 @@ sources:
   #   selector: "h2 > a"
 
 options:
-  maxItems: 50
-  maxContentLength: 4000
-  concurrency: 5
+  maxItems: 10
+  maxContentLength: 65536
+  concurrency: 8
 `
 
 async function initConfig(configPath?: string, options?: { force?: boolean }): Promise<string> {

@@ -18,9 +18,9 @@ sources:
   # Or import from OPML: dailybrew import feeds.opml
 
 options:
-  maxItems: 50
-  maxContentLength: 4000
-  concurrency: 5
+  maxItems: 10
+  maxContentLength: 65536
+  concurrency: 8
 `
 
 /**

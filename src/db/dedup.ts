@@ -57,3 +57,20 @@ export function setLastRunTime(store: Store, timestamp: number): void {
     timestamp.toString(),
   ])
 }
+
+/** Number of days to keep seen items before pruning. */
+const RETENTION_DAYS = 14
+
+/**
+ * Remove seen items older than RETENTION_DAYS.
+ * Returns the number of pruned rows.
+ */
+export function pruneSeen(store: Store): number {
+  const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000
+  store.db.run(`DELETE FROM seen_items WHERE last_seen < ?`, [cutoff])
+  const result = store.db.exec(`SELECT changes()`)
+  if (result.length === 0 || result[0].values.length === 0) {
+    return 0
+  }
+  return Number(result[0].values[0][0])
+}

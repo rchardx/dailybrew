@@ -31,9 +31,9 @@ sources:
     type: rss
 
 options:
-  maxItems: 50
-  maxContentLength: 4000
-  concurrency: 5
+  maxItems: 10
+  maxContentLength: 65536
+  concurrency: 8
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -43,7 +43,7 @@ options:
     expect(config.llm.model).toBe('gpt-4o-mini')
     expect(config.sources).toHaveLength(1)
     expect(config.sources[0].name).toBe('Hacker News')
-    expect(config.options.maxItems).toBe(50)
+    expect(config.options.maxItems).toBe(10)
   })
 
   it('should resolve env var substitution in apiKey', () => {
@@ -137,9 +137,9 @@ sources: []
     fs.writeFileSync(configPath, configContent)
 
     const config = loadConfig(configPath)
-    expect(config.options.maxItems).toBe(50)
-    expect(config.options.maxContentLength).toBe(4000)
-    expect(config.options.concurrency).toBe(5)
+    expect(config.options.maxItems).toBe(10)
+    expect(config.options.maxContentLength).toBe(65536)
+    expect(config.options.concurrency).toBe(8)
   })
 
   it('should throw error on invalid YAML', () => {

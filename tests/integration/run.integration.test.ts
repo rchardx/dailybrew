@@ -1,5 +1,5 @@
 /**
- * Integration tests for the full brew pipeline.
+ * Integration tests for the full run pipeline.
  *
  * Uses real file system (temp dirs), real SQLite via sql.js, real config loading,
  * real markdown formatting — but mocks network (fetch) and LLM (OpenAI SDK).
@@ -144,9 +144,9 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: Complete flow ─────────────────────────────────────────────────
 
   it('complete flow: config → fetch RSS → LLM summarize → markdown output', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
 
-    const dbPath = path.join(tmpDir, 'brew.db')
+    const dbPath = path.join(tmpDir, 'run.db')
     const configPath = writeConfig(tmpDir, {
       llm: { baseUrl: 'http://localhost:11434/v1', apiKey: 'test-key', model: 'test-model' },
       sources: [{ name: 'TestFeed', url: 'https://test-feed.com/rss', type: 'rss' }],
@@ -201,7 +201,7 @@ describe('Integration: Full Brew Pipeline', () => {
     const origInitStore = storeModule.initStore
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
-    const result = await runBrewPipeline({ configPath })
+    const result = await runPipeline({ configPath })
 
     // Verify markdown output
     expect(result).toContain('Daily Digest')
@@ -222,7 +222,7 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: Dedup across runs ─────────────────────────────────────────────
 
   it('dedup across runs: second run with same feed produces fewer items', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
     const storeModule = await import('../../src/db/store')
 
     const dbPath = path.join(tmpDir, 'dedup.db')
@@ -266,7 +266,7 @@ describe('Integration: Full Brew Pipeline', () => {
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
     // First run — both items are new
-    const result1 = await runBrewPipeline({ configPath })
+    const result1 = await runPipeline({ configPath })
     expect(result1).toContain('Alpha')
     expect(result1).toContain('Beta')
     expect(mockParse).toHaveBeenCalledTimes(2)
@@ -285,7 +285,7 @@ describe('Integration: Full Brew Pipeline', () => {
     )
 
     // Second run — items already seen, should produce "No new content"
-    const result2 = await runBrewPipeline({ configPath })
+    const result2 = await runPipeline({ configPath })
     expect(result2).toContain('No new content')
     expect(mockParse).toHaveBeenCalledTimes(0)
 
@@ -295,7 +295,7 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: Mixed sources (RSS + Web) ─────────────────────────────────────
 
   it('mixed sources: config with 1 RSS + 1 web source → both appear in output', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
     const storeModule = await import('../../src/db/store')
 
     const dbPath = path.join(tmpDir, 'mixed.db')
@@ -362,7 +362,7 @@ describe('Integration: Full Brew Pipeline', () => {
     const origInitStore = storeModule.initStore
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
-    const result = await runBrewPipeline({ configPath })
+    const result = await runPipeline({ configPath })
 
     // Both sources should appear
     expect(result).toContain('RSS Article Summary')
@@ -377,7 +377,7 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: Error resilience ──────────────────────────────────────────────
 
   it('error resilience: 1 source returns 500 → other source still processed', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
     const storeModule = await import('../../src/db/store')
 
     const dbPath = path.join(tmpDir, 'resilience.db')
@@ -423,7 +423,7 @@ describe('Integration: Full Brew Pipeline', () => {
     const origInitStore = storeModule.initStore
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
-    const result = await runBrewPipeline({ configPath })
+    const result = await runPipeline({ configPath })
 
     // Good source processed despite broken source
     expect(result).toContain('Good Article Summary')
@@ -441,7 +441,7 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: --output flag ─────────────────────────────────────────────────
 
   it('--output flag: verify file is created with correct content', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
     const storeModule = await import('../../src/db/store')
 
     const dbPath = path.join(tmpDir, 'output.db')
@@ -476,7 +476,7 @@ describe('Integration: Full Brew Pipeline', () => {
     const origInitStore = storeModule.initStore
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
-    const result = await runBrewPipeline({ configPath, output: outputPath })
+    const result = await runPipeline({ configPath, output: outputPath })
 
     // Result should indicate file was written
     expect(result).toContain(outputPath)
@@ -494,7 +494,7 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: --since flag ──────────────────────────────────────────────────
 
   it('--since 1h flag: only items from last hour appear', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
     const storeModule = await import('../../src/db/store')
 
     const dbPath = path.join(tmpDir, 'since.db')
@@ -539,7 +539,7 @@ describe('Integration: Full Brew Pipeline', () => {
     const origInitStore = storeModule.initStore
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
-    const result = await runBrewPipeline({ configPath, since: '1h' })
+    const result = await runPipeline({ configPath, since: '1h' })
 
     // Recent article should appear
     expect(result).toContain('Recent Article Summary')
@@ -552,7 +552,7 @@ describe('Integration: Full Brew Pipeline', () => {
   // ─── Test: Importance sorting ────────────────────────────────────────────
 
   it('importance sorting in output: 🔴 before 🟢', async () => {
-    const { runBrewPipeline } = await import('../../src/commands/brew')
+    const { runPipeline } = await import('../../src/commands/run')
     const storeModule = await import('../../src/db/store')
 
     const dbPath = path.join(tmpDir, 'sorting.db')
@@ -616,7 +616,7 @@ describe('Integration: Full Brew Pipeline', () => {
     const origInitStore = storeModule.initStore
     vi.spyOn(storeModule, 'initStore').mockImplementation(() => origInitStore(dbPath))
 
-    const result = await runBrewPipeline({ configPath })
+    const result = await runPipeline({ configPath })
 
     // 🔴 Critical should appear before 🟡 Important before 🟢 Normal
     const criticalIdx = result.indexOf('🔴')

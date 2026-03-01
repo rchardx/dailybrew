@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
-import { defineCommand, runMain } from 'citty'
+import { defineCommand, runMain, runCommand } from 'citty'
 import { logger } from './utils/logger'
 
 export const main = defineCommand({
@@ -10,8 +10,9 @@ export const main = defineCommand({
     description: 'LLM-powered RSS/web digest CLI',
   },
   subCommands: {
-    brew: () => import('./commands/brew').then((m) => m.default),
+    run: () => import('./commands/run').then((m) => m.default),
     init: () => import('./commands/init').then((m) => m.default),
+    config: () => import('./commands/config').then((m) => m.default),
     add: () => import('./commands/add').then((m) => m.default),
     remove: () => import('./commands/remove').then((m) => m.default),
     list: () => import('./commands/list').then((m) => m.default),
@@ -19,8 +20,10 @@ export const main = defineCommand({
     auth: () => import('./commands/auth').then((m) => m.default),
   },
   args: {},
-  run() {
-    logger.info('dailybrew CLI initialized')
+  async run() {
+    // Default: no subcommand = run
+    const runCmd = await import('./commands/run').then((m) => m.default)
+    await runCommand(runCmd, { rawArgs: process.argv.slice(2) })
   },
 })
 

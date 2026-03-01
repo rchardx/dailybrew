@@ -15,16 +15,15 @@ export const sourceSchema = z.object({
 
 export const optionsSchema = z
   .object({
-    maxItems: z.number().int().positive().default(50),
-    maxContentLength: z.number().int().positive().default(4000),
-    concurrency: z.number().int().positive().default(5),
+    maxItems: z.number().int().positive().default(10),
+    maxContentLength: z.number().int().positive().default(65536),
+    concurrency: z.number().int().positive().default(8),
   })
   .default({
-    maxItems: 50,
-    maxContentLength: 4000,
-    concurrency: 5,
+    maxItems: 10,
+    maxContentLength: 65536,
+    concurrency: 8,
   })
-
 export const configSchema = z.object({
   llm: llmConfigSchema,
   sources: z.array(sourceSchema).default([]),
