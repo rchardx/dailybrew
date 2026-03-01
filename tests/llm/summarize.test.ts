@@ -564,4 +564,71 @@ describe('summarizeItem', () => {
       expect(result).toBeNull()
     })
   })
+
+  describe('Retry logic', () => {
+    it('should retry on transient structured mode error and succeed on second attempt', async () => {
+      const mockParse = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Connection reset'))
+        .mockResolvedValueOnce(
+          structuredResponse({
+            title: 'Retry Success',
+            summary: 'Worked on retry.',
+            importance: 3,
+          }),
+        )
+      ;(client.beta.chat.completions as any).parse = mockParse
+
+      const result = await summarizeItem(client, 'model', 'Content', 'Source')
+
+      expect(result).not.toBeNull()
+      expect(result!.title).toBe('Retry Success')
+      expect(mockParse).toHaveBeenCalledTimes(2)
+    })
+
+    it('should not retry on auth error (401)', async () => {
+      const authError = createAPIError(401, 'Invalid API key')
+      const mockParse = vi.fn().mockRejectedValue(authError)
+      ;(client.beta.chat.completions as any).parse = mockParse
+
+      const result = await summarizeItem(client, 'model', 'Content', 'Source')
+
+      expect(result).toBeNull()
+      // Should only be called once — no retries
+      expect(mockParse).toHaveBeenCalledTimes(1)
+    })
+
+    it('should return null after exhausting all retries', async () => {
+      const mockParse = vi.fn().mockRejectedValue(new Error('Persistent failure'))
+      ;(client.beta.chat.completions as any).parse = mockParse
+
+      const result = await summarizeItem(client, 'model', 'Content', 'Source')
+
+      expect(result).toBeNull()
+      // 3 total attempts: initial + 2 retries
+      expect(mockParse).toHaveBeenCalledTimes(3)
+    })
+
+    it('should retry fallback mode failures and succeed on retry', async () => {
+      // Structured always fails with 400 (unsupported) — triggers fallback
+      const mockParse = vi.fn().mockRejectedValue(createAPIError(400, 'Unsupported'))
+      ;(client.beta.chat.completions as any).parse = mockParse
+
+      const mockCreate = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Temporary fallback failure'))
+        .mockResolvedValueOnce(
+          fallbackResponse('{"title": "Retry FB", "summary": "OK", "importance": 2}'),
+        )
+      ;(client.chat.completions as any).create = mockCreate
+
+      const result = await summarizeItem(client, 'model', 'Content', 'Source')
+
+      expect(result).not.toBeNull()
+      expect(result!.title).toBe('Retry FB')
+      // Structured tried each attempt, fallback tried twice
+      expect(mockParse).toHaveBeenCalledTimes(2)
+      expect(mockCreate).toHaveBeenCalledTimes(2)
+    })
+  })
 })

@@ -201,8 +201,15 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
     } else {
       logger.info(`${newItems.length} new items`)
     }
+
+    // Step 2b: Filter items with empty content (no point sending to LLM)
+    const contentItems = newItems.filter((item) => item.content.trim().length > 0)
+    const emptyCount = newItems.length - contentItems.length
+    if (emptyCount > 0) {
+      logger.info(`Skipped ${emptyCount} items with no content`)
+    }
     // Step 3: Summarize new items via LLM
-    if (newItems.length === 0) {
+    if (contentItems.length === 0) {
       logger.info('Nothing to summarize')
     }
     const llmClient = createLLMClient(config.llm)
@@ -210,13 +217,13 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
 
     // Progress bar for summarization
     let summarizeBar: ReturnType<typeof createProgressBar> | null = null
-    if (newItems.length > 0) {
+    if (contentItems.length > 0) {
       summarizeBar = createProgressBar()
-      summarizeBar.start(newItems.length, 0, { stage: `Summarizing (${config.llm.model})` })
+      summarizeBar.start(contentItems.length, 0, { stage: `Summarizing (${config.llm.model})` })
     }
 
     const summaryResults = await Promise.all(
-      newItems.map((item) =>
+      contentItems.map((item) =>
         summarizeLimit(async () => {
           const result = await summarizeItem(
             llmClient,
@@ -233,21 +240,21 @@ export async function runBrewPipeline(options: BrewOptions): Promise<string> {
 
     // Build digest items from successful summaries
     const digestItems: DigestItem[] = []
-    for (let i = 0; i < newItems.length; i++) {
+    for (let i = 0; i < contentItems.length; i++) {
       const summary = summaryResults[i]
       if (summary !== null) {
         digestItems.push({
           title: summary.title,
-          link: newItems[i].link,
-          sourceName: newItems[i].sourceName,
+          link: contentItems[i].link,
+          sourceName: contentItems[i].sourceName,
           summary: summary.summary,
           importance: summary.importance,
         })
       }
     }
 
-    if (newItems.length > 0) {
-      const failedCount = newItems.length - digestItems.length
+    if (contentItems.length > 0) {
+      const failedCount = contentItems.length - digestItems.length
       const failSuffix = failedCount > 0 ? ` (${failedCount} failed)` : ''
       logger.success(`Summarized ${digestItems.length} items${failSuffix}`)
     }

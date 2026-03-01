@@ -39,6 +39,25 @@ describe('RSS Feed Fetcher', () => {
       })
     })
 
+    it('should send User-Agent header with fetch request', async () => {
+      const rssContent = readFileSync(join(fixturesDir, 'sample-rss.xml'), 'utf-8')
+      const source: Source = {
+        name: 'Tech News',
+        url: 'https://technewsdaily.example.com/feed.xml',
+      }
+
+      mockFetch.mockResolvedValueOnce(new Response(rssContent, { status: 200 }))
+
+      await fetchRssFeed(source, null, 100)
+
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      const callArgs = mockFetch.mock.calls[0]
+      const fetchOptions = callArgs[1]
+      expect(fetchOptions).toBeDefined()
+      expect(fetchOptions.headers).toBeDefined()
+      expect(fetchOptions.headers['User-Agent']).toContain('dailybrew')
+    })
+
     it('should parse a valid Atom feed', async () => {
       const atomContent = readFileSync(join(fixturesDir, 'sample-atom.xml'), 'utf-8')
       const source: Source = {

@@ -502,6 +502,51 @@ describe('runBrewPipeline', () => {
     expect(markSeen).toHaveBeenCalledWith(mockStore, 'new-1', 'HN', 'New')
   })
 
+  it('should filter out items with empty content before sending to LLM', async () => {
+    const config = makeConfig({
+      sources: [{ name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' }],
+    })
+    vi.mocked(loadConfig).mockReturnValue(config)
+
+    vi.mocked(fetchRssFeed).mockResolvedValueOnce({
+      items: [
+        {
+          id: 'item-1',
+          title: 'Has Content',
+          link: 'https://a.com',
+          content: 'Real content',
+          sourceName: 'HN',
+        },
+        { id: 'item-2', title: 'Empty', link: 'https://b.com', content: '', sourceName: 'HN' },
+        {
+          id: 'item-3',
+          title: 'Whitespace',
+          link: 'https://c.com',
+          content: '   ',
+          sourceName: 'HN',
+        },
+        {
+          id: 'item-4',
+          title: 'Also Has Content',
+          link: 'https://d.com',
+          content: 'More real content',
+          sourceName: 'HN',
+        },
+      ],
+      errors: [],
+    })
+
+    vi.mocked(summarizeItem).mockResolvedValue({ title: 'Sum', summary: 'S', importance: 3 })
+    vi.mocked(formatDigest).mockReturnValue('# Digest')
+
+    await runBrewPipeline({ configPath: '/test/config.yaml' })
+
+    // Only items with actual content should be sent to LLM (2 out of 4)
+    expect(summarizeItem).toHaveBeenCalledTimes(2)
+    // All 4 items should still be marked as seen (including empty ones)
+    expect(markSeen).toHaveBeenCalledTimes(4)
+  })
+
   it('should skip null LLM results (failed summaries)', async () => {
     const config = makeConfig({
       sources: [{ name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' }],

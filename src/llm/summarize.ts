@@ -131,11 +131,15 @@ function isAuthError(error: unknown): boolean {
   return error instanceof OpenAI.APIError && error.status === 401
 }
 
+const MAX_RETRIES = 2
+
 /**
  * Summarize a content item using the LLM.
  *
  * Mode 1 (structured): Try zodResponseFormat with Zod schema.
  * Mode 2 (fallback): On 400 error, retry with prompt-based JSON.
+ * Retries up to MAX_RETRIES times on transient failures (bad JSON, null fields, timeouts).
+ * Auth errors (401) are never retried.
  * On any unrecoverable error: return null (caller logs warning, skips item).
  */
 export async function summarizeItem(
@@ -144,41 +148,61 @@ export async function summarizeItem(
   content: string,
   sourceName: string,
 ): Promise<SummaryResult | null> {
-  // Mode 1: Try structured output
-  try {
-    return await tryStructuredMode(client, model, sourceName, content)
-  } catch (error) {
-    // If auth error, provide clear message and return null
-    if (isAuthError(error)) {
-      logger.warn(
-        `[LLM] Authentication failed: Invalid API key. Check your DAILYBREW_API_KEY or config.`,
-      )
-      return null
-    }
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const isLastAttempt = attempt === MAX_RETRIES
 
-    // If structured output unsupported (400), try fallback
-    if (isStructuredOutputUnsupported(error)) {
-      // Mode 2: Fallback to prompt-based JSON
-      try {
-        return await tryFallbackMode(client, model, sourceName, content)
-      } catch (fallbackError) {
-        if (isAuthError(fallbackError)) {
-          logger.warn(
-            `[LLM] Authentication failed: Invalid API key. Check your DAILYBREW_API_KEY or config.`,
-          )
-          return null
-        }
+    // Mode 1: Try structured output
+    try {
+      return await tryStructuredMode(client, model, sourceName, content)
+    } catch (error) {
+      // Auth errors: never retry
+      if (isAuthError(error)) {
         logger.warn(
-          `[LLM] Fallback mode failed for "${sourceName}": ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+          `[LLM] Authentication failed: Invalid API key. Check your DAILYBREW_API_KEY or config.`,
         )
         return null
       }
-    }
 
-    // Any other error (timeout, garbage, etc.): return null
-    logger.warn(
-      `[LLM] Failed to summarize "${sourceName}": ${error instanceof Error ? error.message : String(error)}`,
-    )
-    return null
+      // If structured output unsupported (400), try fallback
+      if (isStructuredOutputUnsupported(error)) {
+        try {
+          return await tryFallbackMode(client, model, sourceName, content)
+        } catch (fallbackError) {
+          if (isAuthError(fallbackError)) {
+            logger.warn(
+              `[LLM] Authentication failed: Invalid API key. Check your DAILYBREW_API_KEY or config.`,
+            )
+            return null
+          }
+
+          if (!isLastAttempt) {
+            logger.warn(
+              `[LLM] Attempt ${attempt + 1}/${MAX_RETRIES + 1} failed for "${sourceName}": ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}. Retrying...`,
+            )
+            continue
+          }
+
+          logger.warn(
+            `[LLM] Fallback mode failed for "${sourceName}" after ${MAX_RETRIES + 1} attempts: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+          )
+          return null
+        }
+      }
+
+      // Any other error (timeout, garbage, etc.): retry if possible
+      if (!isLastAttempt) {
+        logger.warn(
+          `[LLM] Attempt ${attempt + 1}/${MAX_RETRIES + 1} failed for "${sourceName}": ${error instanceof Error ? error.message : String(error)}. Retrying...`,
+        )
+        continue
+      }
+
+      logger.warn(
+        `[LLM] Failed to summarize "${sourceName}" after ${MAX_RETRIES + 1} attempts: ${error instanceof Error ? error.message : String(error)}`,
+      )
+      return null
+    }
   }
+
+  return null
 }

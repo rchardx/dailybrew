@@ -22,6 +22,7 @@ export interface FeedResult {
 }
 
 const FETCH_TIMEOUT_MS = 10000 // 10 seconds
+const USER_AGENT = 'dailybrew/1.0 (+https://github.com/rchardx/dailybrew)'
 
 /**
  * Fetch and parse an RSS/Atom feed, with filtering by last run time and item limits.
@@ -41,7 +42,10 @@ export async function fetchRssFeed(
 
     let response: Response
     try {
-      response = await fetch(source.url, { signal: controller.signal })
+      response = await fetch(source.url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': USER_AGENT },
+      })
     } finally {
       clearTimeout(timeoutId)
     }
