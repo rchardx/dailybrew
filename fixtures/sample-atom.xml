@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Developer Blog</title>
+  <id>urn:uuid:60a76c80-d399-11d9-b91C-0003939e0af6</id>
+  <updated>2026-03-03T10:30:00Z</updated>
+  <link href="https://developer-blog.example.com/"/>
+  <entry>
+    <title>Building Scalable APIs with TypeScript</title>
+    <link href="https://developer-blog.example.com/scalable-apis"/>
+    <id>urn:uuid:1225c695-cfb8-4ebb-aaaa-80da344efa6a</id>
+    <updated>2026-03-03T10:30:00Z</updated>
+    <published>2026-03-03T10:30:00Z</published>
+    <summary>Learn best practices for building scalable REST APIs with TypeScript and Node.js</summary>
+    <content type="html"><![CDATA[
+      <p>In this comprehensive guide, we explore the fundamentals of building scalable APIs...</p>
+    ]]></content>
+  </entry>
+  <entry>
+    <title>React Performance Optimization Tips</title>
+    <link href="https://developer-blog.example.com/react-perf"/>
+    <id>urn:uuid:a225c695-cfb8-4ebb-bbbb-80da344efa6b</id>
+    <updated>2026-03-02T14:20:00Z</updated>
+    <published>2026-03-02T14:20:00Z</published>
+    <summary>Discover key techniques to improve React application performance</summary>
+    <content type="html"><![CDATA[
+      <p>React performance is critical for user experience. Here are the top optimization techniques...</p>
+    ]]></content>
+  </entry>
+  <entry>
+    <title>Understanding Web Components</title>
+    <link href="https://developer-blog.example.com/web-components"/>
+    <id>urn:uuid:b225c695-cfb8-4ebb-cccc-80da344efa6c</id>
+    <updated>2026-03-01T09:45:00Z</updated>
+    <published>2026-03-01T09:45:00Z</published>
+    <summary>Deep dive into the Web Components standard and how to use them</summary>
+    <content type="html"><![CDATA[
+      <p>Web Components provide a standard way to create reusable components...</p>
+    ]]></content>
+  </entry>
+</feed>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Redis Performance Improvements in 2024 - Antirez Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .content { max-width: 800px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/about">About</a></li>
+    </ul>
+  </nav>
+
+  <article class="content">
+    <h1>Redis Performance Improvements in 2024</h1>
+    <time datetime="2024-02-15">February 15, 2024</time>
+    <p>by Antirez</p>
+
+    <p>In this article, I'll discuss the major performance improvements we've implemented in Redis over the past year. These optimizations focus on throughput, latency, and memory efficiency.</p>
+
+    <h2>Memory Optimization</h2>
+    <p>We've completely rewritten the memory allocator to reduce fragmentation. The new implementation uses a buddy system that significantly improves cache locality and reduces the number of system calls.</p>
+    
+    <p>Initial benchmarks show a 15-20% improvement in throughput for typical workloads, with even larger gains for write-heavy scenarios.</p>
+
+    <h2>Concurrency Improvements</h2>
+    <p>The threading model has been redesigned to better utilize modern multi-core processors. We've moved away from a single event loop to a more sophisticated approach that balances workload across cores.</p>
+
+    <p>The key insight was that different types of operations benefit from different threading strategies. Read-heavy operations can be parallelized more aggressively, while write operations require careful coordination.</p>
+
+    <h2>Conclusion</h2>
+    <p>These improvements represent years of careful tuning and benchmarking. We're excited to share them with the community and look forward to your feedback.</p>
+  </article>
+
+  <footer>
+    <p>&copy; 2024 Antirez</p>
+  </footer>
+
+  <script>
+    // Tracking code
+    var analytics = { tracked: true };
+  </script>
+</body>
+</html>

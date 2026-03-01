@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Tech News Daily</title>
+    <link>https://technewsdaily.example.com</link>
+    <description>Latest technology news</description>
+    <item>
+      <title>AI Breakthrough in Language Models</title>
+      <link>https://technewsdaily.example.com/ai-breakthrough</link>
+      <guid>urn:uuid:12345678-1234-1234-1234-123456789012</guid>
+      <pubDate>Mon, 03 Mar 2026 10:30:00 GMT</pubDate>
+      <description>Researchers announce major advancement in language model architecture</description>
+    </item>
+    <item>
+      <title>Cloud Computing Trends 2026</title>
+      <link>https://technewsdaily.example.com/cloud-trends</link>
+      <guid>urn:uuid:87654321-4321-4321-4321-210987654321</guid>
+      <pubDate>Sun, 02 Mar 2026 15:45:00 GMT</pubDate>
+      <description>Explore the top cloud computing trends expected this year</description>
+    </item>
+    <item>
+      <title>Cybersecurity Alert: Zero-Day Vulnerability</title>
+      <link>https://technewsdaily.example.com/security-alert</link>
+      <guid>urn:uuid:11111111-2222-3333-4444-555555555555</guid>
+      <pubDate>Sat, 01 Mar 2026 08:20:00 GMT</pubDate>
+      <description>Security researchers discover critical zero-day vulnerability</description>
+    </item>
+    <item>
+      <title>New JavaScript Framework Released</title>
+      <link>https://technewsdaily.example.com/js-framework</link>
+      <guid>urn:uuid:aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</guid>
+      <pubDate>Fri, 28 Feb 2026 12:00:00 GMT</pubDate>
+      <description>Developers release innovative JavaScript framework with zero runtime overhead</description>
+    </item>
+    <item>
+      <title>Quantum Computing Progress Update</title>
+      <link>https://technewsdaily.example.com/quantum-progress</link>
+      <guid>urn:uuid:ffffffff-eeee-dddd-cccc-bbbbbbbbbbbb</guid>
+      <pubDate>Wed, 26 Feb 2026 09:15:00 GMT</pubDate>
+      <description>IBM reports improved error correction in quantum processors</description>
+    </item>
+  </channel>
+</rss>
