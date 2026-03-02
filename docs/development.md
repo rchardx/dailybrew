@@ -82,29 +82,19 @@ The project uses tsup for building ESM output with a `.mjs` extension.
 
 ## Releasing
 
-Releases are managed via Changesets.
+Releases are automated via [release-please](https://github.com/googleapis/release-please). The workflow:
 
-```bash
-# 1. Ensure all checks pass
-pnpm lint && pnpm test
+1. Push conventional commits to `main` (`feat:`, `fix:`, etc.)
+2. release-please automatically opens a Release PR that bumps `package.json` version and generates `CHANGELOG.md`
+3. Merge the Release PR → GitHub Release with tag is created automatically
 
-# 2. Create a changeset to describe the change and pick the bump type
-pnpm changeset
+Version bumps are determined by commit types:
 
-# 3. Apply the version bump to package.json and the CHANGELOG
-pnpm version
+- `feat:` → minor bump (0.1.0 → 0.2.0)
+- `fix:` → patch bump (0.1.0 → 0.1.1)
+- `feat!:` or `BREAKING CHANGE:` → major bump (0.1.0 → 1.0.0)
 
-# 4. Commit the version change
-git add . && git commit -m "chore: release vX.Y.Z"
-
-# 5. Build and publish to npm
-pnpm release
-
-# 6. Push to remote
-git push && git push --tags
-```
-
-`pnpm changeset` is interactive and creates a markdown file in `.changeset/`. `pnpm version` reads these files, bumps versions, updates the CHANGELOG, and deletes the consumed changesets. It does not auto-commit. `pnpm release` runs `pnpm build && changeset publish`. The access level is `public` and the base branch is `main`.
+No manual steps required beyond writing conventional commits.
 
 ## Commit Conventions
 

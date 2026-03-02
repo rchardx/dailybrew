@@ -227,7 +227,7 @@ off, `noForEach` off.
 
 **Build**: tsup (ESM output, `.mjs` extension). sql.js WASM binary copied to `dist/` via `tsup.config.ts` onSuccess hook.
 
-**Release**: Changesets (`@changesets/cli`) — `pnpm changeset`, `pnpm version`, `pnpm release`.
+**Release**: release-please (automated via GitHub Actions) — conventional commits determine version bumps.
 
 <!-- Tier 4: Extended Reference — consult when needed -->
 
@@ -249,7 +249,6 @@ off, `noForEach` off.
 | **proper-lockfile** | File locking for concurrent SQLite access |
 | **tsup** | Build tool (ESM output, `.mjs` extension) |
 | **@biomejs/biome** | Formatter and linter (Biome 2.4) |
-| **@changesets/cli** | Release management |
 
 ## Environment & Constraints
 
