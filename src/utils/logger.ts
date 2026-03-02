@@ -9,3 +9,13 @@ export const logger = createConsola({
     tag: 'dailybrew',
   },
 })
+
+/**
+ * Set the log level for the logger.
+ * - 0: Fatal/Error only (quiet)
+ * - 3: Info (default)
+ * - 5: Debug/Trace (verbose)
+ */
+export function setLogLevel(level: number): void {
+  logger.level = level
+}
