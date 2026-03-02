@@ -51,6 +51,7 @@ tests/
   integration/        # End-to-end pipeline tests (mock network + LLM, real fs + SQLite)
 fixtures/             # Test data: sample-rss.xml, sample-atom.xml, sample-article.html,
                       #   sample-blog.html, sample-page-with-feed.html, malformed.xml
+docs/                # Project documentation: architecture, commands, configuration, development
 ```
 
 ### Data Flow
@@ -271,12 +272,14 @@ off, `noForEach` off.
 | Add utility | `src/utils/` |
 | Add tests | `tests/{module}/` mirroring `src/` |
 | Add fixtures | `fixtures/` |
+| Update documentation | `docs/` (architecture, commands, configuration, development) |
 
 ### New Module Checklist
 
 1. Create module under `src/<domain>/`.
 2. Add test file(s) under `tests/<domain>/`.
-3. Update this AGENTS.md (Structure section). Run all checks.
+3. Update `docs/` if the module introduces new commands, config, or architecture changes.
+4. Update this AGENTS.md (Structure section). Run all checks.
 
 ## Gotchas
 
