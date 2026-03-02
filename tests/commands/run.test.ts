@@ -23,6 +23,7 @@ vi.mock('../../src/utils/logger', () => ({
     error: vi.fn(),
     start: vi.fn(),
   },
+  setLogLevel: vi.fn(),
 }))
 
 vi.mock('../../src/db/store', () => ({
@@ -35,6 +36,12 @@ vi.mock('../../src/db/dedup', () => ({
   getLastRunTime: vi.fn(),
   setLastRunTime: vi.fn(),
   pruneSeen: vi.fn().mockReturnValue(0),
+}))
+
+vi.mock('../../src/db/cache', () => ({
+  getCachedSummary: vi.fn().mockReturnValue(null),
+  cacheSummary: vi.fn(),
+  pruneSummaryCache: vi.fn().mockReturnValue(0),
 }))
 
 vi.mock('../../src/sources/rss', () => ({
@@ -57,6 +64,14 @@ vi.mock('../../src/output/markdown', () => ({
   formatDigest: vi.fn(),
 }))
 
+vi.mock('../../src/output/json', () => ({
+  formatDigestJson: vi.fn(),
+}))
+
+vi.mock('../../src/output/html', () => ({
+  formatDigestHtml: vi.fn(),
+}))
+
 // Mock progress bar so it doesn't write to stderr during tests
 const mockBar = { start: vi.fn(), increment: vi.fn(), stop: vi.fn() }
 vi.mock('../../src/utils/progress', async (importOriginal) => {
@@ -71,12 +86,16 @@ import { runPipeline, parseSinceDuration } from '../../src/commands/run'
 import { loadConfig } from '../../src/config/loader'
 import { initStore } from '../../src/db/store'
 import { isSeen, markSeen, getLastRunTime, setLastRunTime, pruneSeen } from '../../src/db/dedup'
+import { getCachedSummary, cacheSummary, pruneSummaryCache } from '../../src/db/cache'
 import { fetchRssFeed } from '../../src/sources/rss'
 import { fetchWebPage } from '../../src/sources/web'
 import { createLLMClient } from '../../src/llm/client'
 import { summarizeItem } from '../../src/llm/summarize'
 import { formatDigest } from '../../src/output/markdown'
+import { formatDigestJson } from '../../src/output/json'
+import { formatDigestHtml } from '../../src/output/html'
 import { loadSources } from '../../src/config/sources'
+import { setLogLevel } from '../../src/utils/logger'
 import type { Config } from '../../src/config/schema'
 import type { Store } from '../../src/db/store'
 
@@ -666,5 +685,197 @@ describe('runPipeline', () => {
     expect(errorsArg).toBeDefined()
     expect(errorsArg![0]).toHaveProperty('sourceName', 'HN')
     expect(errorsArg![0]).toHaveProperty('error', 'Feed timeout')
+  })
+
+  it('should skip LLM and DB updates in dry-run mode', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+
+    vi.mocked(fetchRssFeed)
+      .mockResolvedValueOnce({
+        items: [
+          { id: 'item-1', title: 'A1', link: 'https://a.com', content: 'C1', sourceName: 'HN' },
+        ],
+        errors: [],
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: 'item-2',
+            title: 'A2',
+            link: 'https://b.com',
+            content: 'C2',
+            sourceName: 'Lobsters',
+          },
+        ],
+        errors: [],
+      })
+
+    const result = await runPipeline({ configPath: '/test/config.yaml', dryRun: true })
+
+    // LLM should NOT be called in dry-run mode
+    expect(summarizeItem).not.toHaveBeenCalled()
+    // DB state should NOT be updated
+    expect(markSeen).not.toHaveBeenCalled()
+    expect(setLastRunTime).not.toHaveBeenCalled()
+    // formatDigest should NOT be called (dry-run returns a summary string)
+    expect(formatDigest).not.toHaveBeenCalled()
+    // Result should contain dry run summary info
+    expect(result).toContain('Dry run summary')
+    expect(result).toContain('Sources fetched: 2')
+    expect(result).toContain('Items found: 2')
+    expect(result).toContain('New items: 2')
+    // Store should still be saved (schema changes) and closed
+    expect(mockStore.save).toHaveBeenCalled()
+    expect(mockStore.close).toHaveBeenCalled()
+  })
+
+  it('should use JSON formatter when format is json', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigestJson).mockReturnValue('{"date":"2025-01-01","items":[],"errors":[]}')
+
+    const result = await runPipeline({ configPath: '/test/config.yaml', format: 'json' })
+
+    expect(formatDigestJson).toHaveBeenCalledTimes(1)
+    expect(formatDigest).not.toHaveBeenCalled()
+    expect(formatDigestHtml).not.toHaveBeenCalled()
+    expect(result).toContain('date')
+  })
+
+  it('should use HTML formatter when format is html', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigestHtml).mockReturnValue('<html><body>Digest</body></html>')
+
+    const result = await runPipeline({ configPath: '/test/config.yaml', format: 'html' })
+
+    expect(formatDigestHtml).toHaveBeenCalledTimes(1)
+    expect(formatDigest).not.toHaveBeenCalled()
+    expect(formatDigestJson).not.toHaveBeenCalled()
+    expect(result).toContain('Digest')
+  })
+
+  it('should default to markdown format when no format specified', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigest).mockReturnValue('# Daily Digest')
+
+    await runPipeline({ configPath: '/test/config.yaml' })
+
+    expect(formatDigest).toHaveBeenCalledTimes(1)
+  })
+
+  it('should call setLogLevel(5) when verbose is true', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigest).mockReturnValue('No new content')
+
+    await runPipeline({ configPath: '/test/config.yaml', verbose: true })
+
+    expect(setLogLevel).toHaveBeenCalledWith(5)
+  })
+
+  it('should call setLogLevel(0) when quiet is true', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigest).mockReturnValue('No new content')
+
+    await runPipeline({ configPath: '/test/config.yaml', quiet: true })
+
+    expect(setLogLevel).toHaveBeenCalledWith(0)
+  })
+
+  it('should not call setLogLevel when neither verbose nor quiet', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigest).mockReturnValue('No new content')
+
+    await runPipeline({ configPath: '/test/config.yaml' })
+
+    expect(setLogLevel).not.toHaveBeenCalled()
+  })
+
+  it('should use cached summary when available (skip LLM call)', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+    ])
+
+    vi.mocked(fetchRssFeed).mockResolvedValueOnce({
+      items: [
+        { id: 'item-1', title: 'A1', link: 'https://a.com', content: 'C1', sourceName: 'HN' },
+      ],
+      errors: [],
+    })
+
+    // Return cached summary for any call
+    vi.mocked(getCachedSummary).mockReturnValue({
+      title: 'Cached Title',
+      summary: 'Cached Summary',
+      importance: 4,
+    })
+
+    vi.mocked(formatDigest).mockReturnValue('# Digest')
+
+    await runPipeline({ configPath: '/test/config.yaml' })
+
+    // LLM should NOT be called because cache returned a result
+    expect(summarizeItem).not.toHaveBeenCalled()
+    // getCachedSummary should have been called
+    expect(getCachedSummary).toHaveBeenCalled()
+    // cacheSummary should NOT be called (no need to re-cache)
+    expect(cacheSummary).not.toHaveBeenCalled()
+  })
+
+  it('should call LLM and cache result on cache miss', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([
+      { name: 'HN', url: 'https://hnrss.org/frontpage', type: 'rss' },
+    ])
+
+    vi.mocked(fetchRssFeed).mockResolvedValueOnce({
+      items: [
+        { id: 'item-1', title: 'A1', link: 'https://a.com', content: 'C1', sourceName: 'HN' },
+      ],
+      errors: [],
+    })
+
+    // No cache
+    vi.mocked(getCachedSummary).mockReturnValue(null)
+    vi.mocked(summarizeItem).mockResolvedValueOnce({
+      title: 'LLM Title',
+      summary: 'LLM Summary',
+      importance: 3,
+    })
+
+    vi.mocked(formatDigest).mockReturnValue('# Digest')
+
+    await runPipeline({ configPath: '/test/config.yaml' })
+
+    // LLM should be called
+    expect(summarizeItem).toHaveBeenCalledTimes(1)
+    // Result should be cached
+    expect(cacheSummary).toHaveBeenCalledTimes(1)
+  })
+
+  it('should prune summary cache alongside seen items', async () => {
+    const config = makeConfig()
+    vi.mocked(loadConfig).mockReturnValue(config)
+    vi.mocked(loadSources).mockReturnValue([])
+    vi.mocked(formatDigest).mockReturnValue('No new content')
+
+    await runPipeline({ configPath: '/test/config.yaml' })
+
+    expect(pruneSummaryCache).toHaveBeenCalled()
+    expect(pruneSeen).toHaveBeenCalled()
   })
 })
