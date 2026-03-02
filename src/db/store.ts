@@ -109,6 +109,17 @@ export async function initStore(dbPath?: string): Promise<Store> {
     )
   `)
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS summary_cache (
+      content_hash TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      importance INTEGER NOT NULL,
+      model TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    )
+  `)
+
   const store: Store = {
     db,
     dbPath: finalDbPath,
