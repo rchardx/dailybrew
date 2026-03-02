@@ -5,8 +5,8 @@
 ## Project Overview
 
 LLM-powered RSS/web digest CLI — fetch sources, summarize with an OpenAI-compatible LLM, and output
-importance-sorted markdown digests. Node.js 20+, ESM only, managed by pnpm. ~2600 LOC (src), ~6600 LOC (tests),
-354 tests, 80%+ coverage.
+importance-sorted markdown digests. Node.js 20+, ESM only, managed by pnpm. ~2900 LOC (src), ~7900 LOC (tests),
+426 tests, 80%+ coverage.
 
 **Tech stack**: TypeScript (strict), citty (CLI), Zod (validation), openai (LLM), sql.js (SQLite WASM), cheerio
 (scraping), rss-parser (feeds), consola (logging), p-limit (concurrency), js-yaml (config), env-paths (XDG paths),
@@ -42,7 +42,7 @@ src/
   config/             # Schema (Zod), loader (YAML), sources management, ensure/auto-init
   db/                 # SQLite store (sql.js WASM) + dedup logic + lockfile protection
   llm/                # OpenAI client, summarizer, prompt building, response schemas
-  output/             # Markdown digest formatter
+  output/             # Digest formatters: Markdown, JSON, HTML
   sources/            # RSS fetcher, web scraper, feed detection, OPML parser
   types/              # Ambient type declarations (e.g., sql.js.d.ts)
   utils/              # URL normalization, logger (consola), progress bars
