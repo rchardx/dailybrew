@@ -14,9 +14,7 @@
     "format": "biome check --write .",
     "check": "biome check .",
     "prepare": "husky",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release": "pnpm run build && changeset publish"
+    "release": "pnpm run build"
   },
   "lint-staged": {
     "*.{ts,js,json}": [
@@ -62,7 +60,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
-    "@changesets/cli": "^2.29.8",
     "@types/cli-progress": "^3.11.6",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.10.6",
