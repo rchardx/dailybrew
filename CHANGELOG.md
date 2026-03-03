@@ -1,5 +1,12 @@
 # dailybrew
 
+## [0.2.2](https://github.com/rchardx/dailybrew/compare/v0.2.1...v0.2.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* upgrade npm to latest for OIDC trusted publishing support ([a091bcc](https://github.com/rchardx/dailybrew/commit/a091bccf3221d41148ef6dd9b01dfec998b95eb9))
+
 ## [0.2.1](https://github.com/rchardx/dailybrew/compare/v0.2.0...v0.2.1) (2026-03-03)
 
 
