@@ -1,5 +1,12 @@
 # dailybrew
 
+## [0.2.1](https://github.com/rchardx/dailybrew/compare/v0.2.0...v0.2.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* remove registry-url from setup-node to enable OIDC token exchange ([f3a1c53](https://github.com/rchardx/dailybrew/commit/f3a1c53823fe3dde327ccd1afa4a3b8fb31e2853))
+
 ## [0.2.0](https://github.com/rchardx/dailybrew/compare/v0.1.1...v0.2.0) (2026-03-03)
 
 
