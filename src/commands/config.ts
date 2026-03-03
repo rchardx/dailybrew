@@ -7,14 +7,14 @@ import { logger } from '../utils/logger'
 
 /** Settable config keys: type and description */
 const SETTABLE_KEYS: Record<string, { type: 'string' | 'number'; desc: string }> = {
-  'llm.baseUrl': { type: 'string', desc: 'LLM API endpoint URL (e.g. https://api.openai.com/v1)' },
+  'llm.baseUrl': { type: 'string', desc: 'LLM API endpoint URL (e.g. https://api.deepseek.com)' },
   'llm.apiKey': {
     type: 'string',
     desc: 'API key for LLM authentication (prefer DAILYBREW_API_KEY env var)',
   },
   'llm.model': {
     type: 'string',
-    desc: 'Model name for summarization (e.g. gpt-4o, deepseek-chat)',
+    desc: 'Model name for summarization (e.g. deepseek-reasoner, deepseek-chat)',
   },
   'options.maxItems': {
     type: 'number',
@@ -40,7 +40,7 @@ const SETTABLE_KEYS: Record<string, { type: 'string' | 'number'; desc: string }>
 
 /**
  * Set a dotted key on a nested object.
- * e.g. setNestedKey(obj, 'llm.model', 'gpt-4o')
+ * e.g. setNestedKey(obj, 'llm.model', 'deepseek-reasoner')
  */
 function setNestedKey(obj: Record<string, unknown>, key: string, value: unknown): void {
   const parts = key.split('.')
@@ -149,8 +149,8 @@ export default defineCommand({
         }
         logger.log('')
         logger.log('Examples:')
-        logger.log('  dailybrew config set llm.model gpt-4o')
-        logger.log('  dailybrew config set llm.baseUrl https://api.openai.com/v1')
+        logger.log('  dailybrew config set llm.model deepseek-reasoner')
+        logger.log('  dailybrew config set llm.baseUrl https://api.deepseek.com')
         logger.log('  dailybrew config set options.maxItems 20')
         return
       }

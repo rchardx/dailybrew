@@ -9,9 +9,9 @@ const DEFAULT_CONFIG = `# dailybrew configuration
 # Docs: https://github.com/rchardx/dailybrew
 
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "\${DAILYBREW_API_KEY}"    # Set env var: export DAILYBREW_API_KEY=your-key
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 
 options:
   maxItems: 10
@@ -73,9 +73,8 @@ export function isAuthConfigured(configPath: string): boolean {
 }
 
 const PROVIDER_PRESETS: Record<string, { baseUrl: string; model: string }> = {
-  OpenAI: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  OpenRouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'openai/gpt-4o-mini' },
-  Groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile' },
+  DeepSeek: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-reasoner' },
+  OpenRouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'deepseek/deepseek-reasoner' },
   'Local (LM Studio / Ollama)': { baseUrl: 'http://localhost:1234/v1', model: 'local-model' },
 }
 
@@ -119,7 +118,7 @@ export async function ensureAuth(
 
     const customModel = (await consola.prompt('Model name:', {
       type: 'text',
-      placeholder: 'gpt-4o-mini',
+      placeholder: 'deepseek-reasoner',
     })) as unknown as string
     if (typeof customModel === 'symbol' || !customModel) return false
     model = customModel

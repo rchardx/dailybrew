@@ -8,9 +8,9 @@ const EXAMPLE_CONFIG = `# dailybrew configuration
 # Docs: https://github.com/rchardx/dailybrew
 
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "\${DAILYBREW_API_KEY}"    # Set env var: export DAILYBREW_API_KEY=your-key
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 
 # Sources are managed separately in sources.yaml
 # Use: dailybrew list add <url>
