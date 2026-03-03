@@ -12,6 +12,7 @@ LLM-powered RSS/web digest CLI — fetch sources, summarize with an OpenAI-compa
 - **Seamless setup**: Auto-creates config on first use, interactive LLM auth
 - **Deduplication**: SQLite-based tracking across runs
 - **Cross-platform**: No native dependencies — Mac, Linux, Windows
+- **Webhooks**: Push digests to Feishu (飞书) bot endpoints as rich card messages
 
 ## Installation
 
@@ -53,6 +54,10 @@ dailybrew run --output digest.md
 | `list remove <url>` | Remove source |
 | `config` | Show config (`--path` for file path only) |
 | `config set <key> <value>` | Set config value |
+| `webhook` | List all configured webhooks |
+| `webhook add <url>` | Add webhook (`--name <name>`, `--type feishu`) |
+| `webhook remove <name>` | Remove webhook by name |
+| `webhook toggle <name>` | Enable/disable webhook |
 
 **`run` flags**: `--config <path>`, `--output <path>`, `--max-items <n>`, `--since <duration>`
 
@@ -65,6 +70,15 @@ dailybrew run --output digest.md
 | Config | `~/.config/dailybrew/config.yaml` |
 | Sources | `~/.config/dailybrew/sources.yaml` |
 | State DB | `~/.local/share/dailybrew/dailybrew.db` |
+Webhooks are configured in `config.yaml`:
+
+```yaml
+webhooks:
+  - type: feishu
+    name: team-bot
+    url: https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+    enabled: true
+```
 
 Set `DAILYBREW_API_KEY` env var for the LLM API key (recommended over hardcoding in YAML).
 

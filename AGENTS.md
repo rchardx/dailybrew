@@ -5,8 +5,8 @@
 ## Project Overview
 
 LLM-powered RSS/web digest CLI — fetch sources, summarize with an OpenAI-compatible LLM, and output
-importance-sorted markdown digests. Node.js 20+, ESM only, managed by pnpm. ~2900 LOC (src), ~7900 LOC (tests),
-426 tests, 80%+ coverage.
+importance-sorted markdown digests. Node.js 20+, ESM only, managed by pnpm. ~3500 LOC (src), ~9000 LOC (tests),
+491 tests, 92%+ coverage.
 
 **Tech stack**: TypeScript (strict), citty (CLI), Zod (validation), openai (LLM), sql.js (SQLite WASM), cheerio
 (scraping), rss-parser (feeds), consola (logging), p-limit (concurrency), js-yaml (config), env-paths (XDG paths),
@@ -38,7 +38,7 @@ pnpm lint && pnpm test
 ```
 src/
   cli.ts              # Entry point, subcommand routing (default = run)
-  commands/           # CLI subcommands: run, init, config, list, import, auth
+  commands/           # CLI subcommands: run, init, config, list, import, auth, webhook
   config/             # Schema (Zod), loader (YAML), sources management, ensure/auto-init
   db/                 # SQLite store (sql.js WASM) + dedup logic + lockfile protection
   llm/                # OpenAI client, summarizer, prompt building, response schemas
@@ -46,8 +46,10 @@ src/
   sources/            # RSS fetcher, web scraper, feed detection, OPML parser
   types/              # Ambient type declarations (e.g., sql.js.d.ts)
   utils/              # URL normalization, logger (consola), progress bars
+  webhooks/           # Webhook dispatch: Feishu card formatter + sender
 tests/
   {module}/           # Mirrors src/ structure: tests/sources/rss.test.ts
+  webhooks/           # Tests for webhook dispatch and formatting
   integration/        # End-to-end pipeline tests (mock network + LLM, real fs + SQLite)
 fixtures/             # Test data: sample-rss.xml, sample-atom.xml, sample-article.html,
                       #   sample-blog.html, sample-page-with-feed.html, malformed.xml
@@ -56,18 +58,19 @@ docs/                # Project documentation: architecture, commands, configurat
 
 ### Data Flow
 
-- `run` (default): Config → Sources → Fetch (RSS/Web) → Dedup (SQLite) → Summarize (LLM) → Markdown digest
+- `run` (default): Config → Sources → Fetch (RSS/Web) → Dedup (SQLite) → Summarize (LLM) → Markdown digest → Webhooks
 - `init`: Create example config (`--force` to overwrite)
 - `auth`: Interactive LLM provider configuration
 - `import <file>`: OPML → Sources YAML
 - `list add/remove`: Manage `sources.yaml` entries
 - `config set`: Modify `config.yaml` values
+- `webhook add/remove/toggle`: Manage `config.yaml` webhook entries
 
 ### Configuration Files
 
 | File | Path | Purpose |
 | ---- | ---- | ------- |
-| Config | `~/.config/dailybrew/config.yaml` | LLM settings, options |
+| Config | `~/.config/dailybrew/config.yaml` | LLM settings, options, webhooks |
 | Sources | `~/.config/dailybrew/sources.yaml` | Feed/page list (managed via `list add/remove`) |
 | State DB | `~/.local/share/dailybrew/dailybrew.db` | SQLite dedup tracking |
 
@@ -270,6 +273,7 @@ off, `noForEach` off.
 | Add DB logic | `src/db/` |
 | Add utility | `src/utils/` |
 | Add tests | `tests/{module}/` mirroring `src/` |
+| Add webhook type | `src/webhooks/` + schema enum in `src/config/schema.ts` |
 | Add fixtures | `fixtures/` |
 | Update documentation | `docs/` (architecture, commands, configuration, development) |
 
@@ -290,3 +294,5 @@ off, `noForEach` off.
 - `proper-lockfile` prevents concurrent SQLite corruption — don't bypass it.
 - Biome's `noExplicitAny` is off but avoid `any` where possible — prefer `unknown`.
 - Coverage threshold: 80% lines/functions/statements, 70% branches.
+- Webhooks dispatch after formatting in the `run` pipeline — they send to all enabled endpoints in parallel.
+- Webhook config lives in `config.yaml` under the `webhooks` array, managed via `dailybrew webhook` command.

@@ -14,6 +14,7 @@ The primary `run` pipeline follows this execution path:
 4. **Dedup**: Check for previously seen items using SQLite via the sql.js WASM library.
 5. **Summarize**: Send new content to an LLM for summarization. This happens in parallel with a default limit of 8 and utilizes a content hash cache.
 6. **Format**: Convert the summarized results into the requested output format (Markdown, JSON, or HTML).
+6b. **Webhooks**: If configured, dispatch the digest to all enabled webhook endpoints (Feishu) in parallel.
 7. **Output**: Write the formatted digest to stdout or a specified file.
 8. **Update DB**: Mark items as seen and prune old entries.
 
@@ -52,6 +53,9 @@ Each directory in the `src/` folder has a specific responsibility within the pip
     - `markdown.ts`: Groups items by importance (level 5 down to 1) and formats them with blockquote summaries.
     - `json.ts`: Produces a structured JSON representation of the digest.
     - `html.ts`: Generates a standalone, responsive HTML file with inline CSS and XSS protection.
+- **src/webhooks/**: Webhook dispatch system for pushing digests to external services.
+    - `feishu.ts`: Formats digest items into Feishu Card JSON v2 with importance grouping and sends via POST to webhook endpoints.
+    - `index.ts`: Dispatcher that routes to the appropriate webhook handler by type. Sends to all enabled webhooks in parallel.
 - **src/utils/**: Contains shared utilities for logging (consola), progress bars, and URL normalization.
 - **src/types/**: Holds ambient type declarations.
 
@@ -66,6 +70,7 @@ Each directory in the `src/` folder has a specific responsibility within the pip
 - **Lazy subcommand loading**: Dynamic imports in the CLI entry point allow for sub-100ms startup times.
 - **Two-mode LLM**: The system attempts to use structured output features (zodResponseFormat) first, falling back to JSON-in-prompt for models that do not support it.
 - **Content caching**: Using a SHA-256 hash of the content combined with the model name prevents expensive re-summarization of unchanged articles.
+- **Webhook dispatch**: After formatting, the pipeline sends digests to configured webhook endpoints in parallel. The webhook system is extensible — new service types (Slack, Discord, Telegram) can be added by implementing a formatter and sender in `src/webhooks/`.
 
 ## SQLite Schema
 
@@ -83,3 +88,4 @@ The modular nature of the project makes it straightforward to add new functional
 - **New output format**: Create a new formatter in `src/output/` and wire it into the `formatOutput` function.
 - **New CLI command**: Add a new definition in `src/commands/` and register it in the `subCommands` object in `src/cli.ts`.
 - **New config option**: Update the relevant Zod schema in `src/config/schema.ts` to automatically gain validation and type support.
+- **New webhook type**: Create a formatter/sender in `src/webhooks/`, add the type to the schema enum in `src/config/schema.ts`, and add a case in the dispatcher switch in `src/webhooks/index.ts`.

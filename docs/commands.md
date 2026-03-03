@@ -139,3 +139,38 @@ dailybrew config set llm.model gpt-4o
 dailybrew config set options.maxItems 20
 dailybrew config set llm.baseUrl https://api.openai.com/v1
 ```
+```bash
+dailybrew webhook toggle team-bot
+```
+Toggle a webhook's enabled/disabled state.
+,
+## webhook toggle <name>
+,
+```bash
+dailybrew webhook remove team-bot
+```
+,
+Remove a webhook by name.
+,
+## webhook remove <name>
+,
+```bash
+dailybrew webhook add https://open.feishu.cn/open-apis/bot/v2/hook/xxx --name team-bot --type feishu
+```
+,
+### Examples
+,
+- `--name, -n <name>`: Display name for the webhook (required)
+- `--type, -t <type>`: Webhook type: `feishu` (required)
+,
+### Flags
+,
+Add a new webhook endpoint.
+,
+## webhook add <url>
+,
+List all configured webhooks with details (name, type, URL, status).
+,
+
+## webhook
+,

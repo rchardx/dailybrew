@@ -66,6 +66,37 @@ sources:
 
 While this file can be edited manually, it is primarily managed via `dailybrew list add/remove` and should not be edited manually unless needed.
 
+## Webhooks
+
+Webhooks push digest output to external services after each run. They are configured in the `webhooks` array within `config.yaml`. When the `run` command completes, it sends the digest to all enabled webhooks.
+
+```yaml
+webhooks:
+  - type: feishu
+    name: team-bot
+    url: "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-id"
+    enabled: true
+  - type: feishu
+    name: alerts-bot
+    url: "https://open.feishu.cn/open-apis/bot/v2/hook/another-id"
+    enabled: false
+```
+
+### Fields
+
+- **type** (string, required): The webhook service type. Currently supported: `feishu`.
+- **name** (string, required): A unique display name for this webhook.
+- **url** (string, required): The full webhook endpoint URL.
+- **enabled** (boolean, optional): Whether this webhook is active. Defaults to `true`.
+
+### Supported Types
+
+| Type | Service | Card Format |
+| ---- | ------- | ----------- |
+| `feishu` | Feishu (飞书) Bot | Interactive Card JSON v2 with rich text, importance grouping, error sections |
+
+Webhooks can be managed via the `dailybrew webhook` command or by editing `config.yaml` directly.
+],op:
 ## Environment Variables
 
 - **DAILYBREW_API_KEY**: The standard environment variable for providing your LLM API key.
