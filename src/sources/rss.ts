@@ -21,7 +21,7 @@ export interface FeedResult {
   errors: FetchError[]
 }
 
-const FETCH_TIMEOUT_MS = 10000 // 10 seconds
+const DEFAULT_FETCH_TIMEOUT_MS = 20000 // 20 seconds
 const USER_AGENT = 'dailybrew/1.0 (+https://github.com/rchardx/dailybrew)'
 
 /**
@@ -31,6 +31,7 @@ export async function fetchRssFeed(
   source: Source,
   lastRunTime: number | null,
   maxItems: number,
+  fetchTimeout: number = DEFAULT_FETCH_TIMEOUT_MS,
 ): Promise<FeedResult> {
   const items: RawItem[] = []
   const errors: FetchError[] = []
@@ -38,7 +39,7 @@ export async function fetchRssFeed(
   try {
     // Fetch feed with timeout
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    const timeoutId = setTimeout(() => controller.abort(), fetchTimeout)
 
     let response: Response
     try {

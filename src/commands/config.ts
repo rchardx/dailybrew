@@ -28,6 +28,14 @@ const SETTABLE_KEYS: Record<string, { type: 'string' | 'number'; desc: string }>
     type: 'number',
     desc: 'Number of sources to fetch in parallel (default: 8)',
   },
+  'options.fetchTimeout': {
+    type: 'number',
+    desc: 'Fetch timeout in milliseconds (default: 20000)',
+  },
+  'options.llmTimeout': {
+    type: 'number',
+    desc: 'LLM request timeout in milliseconds (default: 60000)',
+  },
 }
 
 /**

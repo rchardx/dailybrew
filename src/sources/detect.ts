@@ -2,7 +2,7 @@ import * as cheerio from 'cheerio'
 import { resolveUrl } from '../utils/url'
 
 const COMMON_FEED_PATHS = ['/feed', '/rss', '/atom.xml', '/index.xml']
-const FETCH_TIMEOUT_MS = 10000 // 10 seconds
+const DEFAULT_FETCH_TIMEOUT_MS = 20000 // 20 seconds
 
 /**
  * Auto-detect a feed URL from a given web page URL.
@@ -10,10 +10,13 @@ const FETCH_TIMEOUT_MS = 10000 // 10 seconds
  * 2. If not found, try common feed paths
  * 3. Return the first successful feed URL or null
  */
-export async function detectFeedUrl(url: string): Promise<string | null> {
+export async function detectFeedUrl(
+  url: string,
+  fetchTimeout: number = DEFAULT_FETCH_TIMEOUT_MS,
+): Promise<string | null> {
   try {
     // First, try to detect from HTML link tags
-    const feedUrl = await detectFromHtml(url)
+    const feedUrl = await detectFromHtml(url, fetchTimeout)
     if (feedUrl) {
       return feedUrl
     }
@@ -21,7 +24,7 @@ export async function detectFeedUrl(url: string): Promise<string | null> {
     // If not found, try common paths
     for (const path of COMMON_FEED_PATHS) {
       const candidateUrl = new URL(path, url).href
-      if (await isFeedUrl(candidateUrl)) {
+      if (await isFeedUrl(candidateUrl, fetchTimeout)) {
         return candidateUrl
       }
     }
@@ -35,10 +38,10 @@ export async function detectFeedUrl(url: string): Promise<string | null> {
 /**
  * Detect feed URL from HTML content by looking for <link rel="alternate"> tags
  */
-async function detectFromHtml(url: string): Promise<string | null> {
+async function detectFromHtml(url: string, fetchTimeout: number): Promise<string | null> {
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    const timeoutId = setTimeout(() => controller.abort(), fetchTimeout)
 
     let response: Response
     try {
@@ -75,10 +78,10 @@ async function detectFromHtml(url: string): Promise<string | null> {
 /**
  * Check if a URL returns valid feed content (RSS/Atom XML)
  */
-async function isFeedUrl(url: string): Promise<boolean> {
+async function isFeedUrl(url: string, fetchTimeout: number): Promise<boolean> {
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    const timeoutId = setTimeout(() => controller.abort(), fetchTimeout)
 
     let response: Response
     try {

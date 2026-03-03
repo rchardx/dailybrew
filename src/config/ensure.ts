@@ -17,6 +17,8 @@ options:
   maxItems: 10
   maxContentLength: 65536
   concurrency: 8
+  fetchTimeout: 20000          # Fetch timeout in ms (default: 20s)
+  llmTimeout: 60000            # LLM request timeout in ms (default: 60s)
 `
 
 /**

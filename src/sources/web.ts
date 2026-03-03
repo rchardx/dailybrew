@@ -26,7 +26,7 @@ export interface FeedResult {
 }
 
 const USER_AGENT = 'dailybrew/1.0 (+https://github.com/rchardx/dailybrew)'
-const FETCH_TIMEOUT = 10000 // 10 seconds
+const DEFAULT_FETCH_TIMEOUT = 20000 // 20 seconds
 
 /**
  * Fetch a web page and extract articles using CSS selectors
@@ -36,13 +36,14 @@ export async function fetchWebPage(
   _lastRunTime: number | null,
   maxItems: number,
   maxContentLength: number,
+  fetchTimeout: number = DEFAULT_FETCH_TIMEOUT,
 ): Promise<FeedResult> {
   const items: RawItem[] = []
   const errors: FetchError[] = []
 
   try {
     // Fetch the main page
-    const html = await fetchWithTimeout(source.url, FETCH_TIMEOUT)
+    const html = await fetchWithTimeout(source.url, fetchTimeout)
     const $ = cheerio.load(html)
 
     // Extract links using the CSS selector
@@ -66,7 +67,7 @@ export async function fetchWebPage(
     for (const link of linksToFetch) {
       try {
         const articleUrl = resolveUrl(link.href, source.url)
-        const articleHtml = await fetchWithTimeout(articleUrl, FETCH_TIMEOUT)
+        const articleHtml = await fetchWithTimeout(articleUrl, fetchTimeout)
         const $article = cheerio.load(articleHtml)
 
         // Extract content with noise removal
