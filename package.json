@@ -24,6 +24,12 @@
   "bin": {
     "dailybrew": "./bin/dailybrew.mjs"
   },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rchardx/dailybrew.git"
