@@ -152,8 +152,8 @@ describe('CLI', () => {
   })
 
   describe('meta', () => {
-    it('should have version "1.0.0"', () => {
-      expect(main.meta?.version).toBe('1.0.0')
+    it('should have version matching package.json', () => {
+      expect(main.meta?.version).toBe('0.1.1')
     })
 
     it('should have description mentioning LLM and RSS', () => {

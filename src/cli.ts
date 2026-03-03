@@ -1,12 +1,17 @@
 import { fileURLToPath } from 'node:url'
-import { resolve } from 'node:path'
+import { resolve, dirname, join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { defineCommand, runMain, runCommand } from 'citty'
 import { logger } from './utils/logger'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'))
 
 export const main = defineCommand({
   meta: {
     name: 'dailybrew',
-    version: '1.0.0',
+    version: pkg.version,
     description: 'LLM-powered RSS/web digest CLI',
   },
   subCommands: {
