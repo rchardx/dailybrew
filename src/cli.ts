@@ -21,6 +21,7 @@ export const main = defineCommand({
     list: () => import('./commands/list').then((m) => m.default),
     import: () => import('./commands/import').then((m) => m.default),
     auth: () => import('./commands/auth').then((m) => m.default),
+    webhook: () => import('./commands/webhook').then((m) => m.default),
   },
   args: {},
   async run() {

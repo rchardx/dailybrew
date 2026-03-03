@@ -25,6 +25,7 @@ import type { Source } from '../config/schema'
 import type { FetchError as RssFetchError } from '../sources/rss'
 import { logger, setLogLevel } from '../utils/logger'
 import { createProgressBar, truncateName } from '../utils/progress'
+import { dispatchWebhooks } from '../webhooks/index'
 
 /**
  * Parse a human-readable duration string into a Unix timestamp (ms).
@@ -88,12 +89,13 @@ async function fetchSource(
   lastRunTime: number | null,
   maxItems: number,
   maxContentLength: number,
+  fetchTimeout: number,
 ): Promise<{ items: RawItem[]; errors: MarkdownFetchError[] }> {
   const items: RawItem[] = []
   const errors: MarkdownFetchError[] = []
 
   if (source.type === 'web') {
-    const result = await fetchWebPage(source, lastRunTime, maxItems, maxContentLength)
+    const result = await fetchWebPage(source, lastRunTime, maxItems, maxContentLength, fetchTimeout)
     items.push(
       ...result.items.map((i) => ({
         id: i.id,
@@ -106,7 +108,7 @@ async function fetchSource(
     errors.push(...result.errors)
   } else {
     // Default to RSS
-    const result = await fetchRssFeed(source, lastRunTime, maxItems)
+    const result = await fetchRssFeed(source, lastRunTime, maxItems, fetchTimeout)
     items.push(
       ...result.items.map((i) => ({
         id: i.id,
@@ -152,6 +154,7 @@ function formatOutput(
  * 5. Filter via dedup
  * 6. Summarize via LLM (parallel, capped by concurrency) — with cache
  * 7. Format digest (markdown/json/html)
+ * 7b. Dispatch to webhooks (if configured)
  * 8. Output to stdout or file
  * 9. Mark items as seen + update lastRunTime
  * 10. Save + close store
@@ -169,6 +172,8 @@ export async function runPipeline(options: RunOptions): Promise<string> {
   const maxItems = options.maxItems ?? config.options.maxItems
   const concurrency = config.options.concurrency
   const maxContentLength = config.options.maxContentLength
+  const fetchTimeout = config.options.fetchTimeout
+  const llmTimeout = config.options.llmTimeout
   const format = options.format ?? 'markdown'
 
   logger.info(`Loaded ${sources.length} sources (maxItems=${maxItems}, concurrency=${concurrency})`)
@@ -196,15 +201,19 @@ export async function runPipeline(options: RunOptions): Promise<string> {
     const fetchResults = await Promise.all(
       sources.map((source) =>
         fetchLimit(async () => {
-          const result = await fetchSource(source, lastRunTime, maxItems, maxContentLength).catch(
-            (err): { items: RawItem[]; errors: MarkdownFetchError[] } => {
-              const message = err instanceof Error ? err.message : String(err)
-              return {
-                items: [],
-                errors: [{ sourceName: source.name, url: source.url, error: message }],
-              }
-            },
-          )
+          const result = await fetchSource(
+            source,
+            lastRunTime,
+            maxItems,
+            maxContentLength,
+            fetchTimeout,
+          ).catch((err): { items: RawItem[]; errors: MarkdownFetchError[] } => {
+            const message = err instanceof Error ? err.message : String(err)
+            return {
+              items: [],
+              errors: [{ sourceName: source.name, url: source.url, error: message }],
+            }
+          })
           fetchBar.increment(1, { stage: `Fetching — ${truncateName(source.name)}` })
           return result
         }),
@@ -263,7 +272,7 @@ export async function runPipeline(options: RunOptions): Promise<string> {
     if (contentItems.length === 0) {
       logger.info('Nothing to summarize')
     }
-    const llmClient = createLLMClient(config.llm)
+    const llmClient = createLLMClient(config.llm, llmTimeout)
     const model = config.llm.model
     const summarizeLimit = pLimit(concurrency)
 
@@ -329,6 +338,12 @@ export async function runPipeline(options: RunOptions): Promise<string> {
       digestItems,
       allErrors.length > 0 ? allErrors : undefined,
     )
+
+    // Step 4b: Dispatch to webhooks (if configured)
+    const webhooks = config.webhooks ?? []
+    if (webhooks.length > 0) {
+      await dispatchWebhooks(webhooks, digestItems, allErrors.length > 0 ? allErrors : undefined)
+    }
 
     // Step 5: Output
     let output: string
