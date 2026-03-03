@@ -39,16 +39,17 @@ describe('CLI', () => {
   })
 
   describe('subCommands', () => {
-    it('should register all 6 subcommands', () => {
+    it('should register all 7 subcommands', () => {
       expect(main.subCommands).toBeDefined()
       const subCommandNames = Object.keys(main.subCommands ?? {})
-      expect(subCommandNames).toHaveLength(6)
+      expect(subCommandNames).toHaveLength(7)
       expect(subCommandNames).toContain('run')
       expect(subCommandNames).toContain('init')
       expect(subCommandNames).toContain('config')
       expect(subCommandNames).toContain('list')
       expect(subCommandNames).toContain('import')
       expect(subCommandNames).toContain('auth')
+      expect(subCommandNames).toContain('webhook')
     })
 
     it('should lazy-load each subcommand as a function returning a promise', () => {

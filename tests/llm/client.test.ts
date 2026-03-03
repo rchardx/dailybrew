@@ -37,7 +37,7 @@ describe('LLM Client', () => {
     expect(client.maxRetries).toBe(3)
   })
 
-  it('should configure timeout to 30000ms', () => {
+  it('should configure default timeout to 60000ms', () => {
     const client = createLLMClient({
       baseUrl: 'https://api.openai.com/v1',
       apiKey: 'test-key',
@@ -45,7 +45,21 @@ describe('LLM Client', () => {
     })
 
     // The OpenAI client exposes the timeout
-    expect((client as any)._options?.timeout ?? (client as any).timeout).toBe(30000)
+    expect((client as any)._options?.timeout ?? (client as any).timeout).toBe(60000)
+  })
+
+  it('should configure custom timeout when provided', () => {
+    const client = createLLMClient(
+      {
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: 'test-key',
+        model: 'gpt-4o-mini',
+      },
+      120000,
+    )
+
+    // The OpenAI client exposes the timeout
+    expect((client as any)._options?.timeout ?? (client as any).timeout).toBe(120000)
   })
 
   it('should work with different LLM providers via baseURL', () => {
