@@ -51,7 +51,7 @@ dailybrew init --force
 
 ## auth
 
-Interactively configure LLM provider (baseUrl, API key, model). Walks through provider selection (OpenAI, OpenRouter, Groq, Local, Custom), model, and API key.
+Interactively configure LLM provider (baseUrl, API key, model). Walks through provider selection (DeepSeek, OpenRouter, Local, Custom), model, and API key.
 
 ### Flags
 
@@ -135,9 +135,9 @@ Set a config value by dotted key path.
 ### Examples
 
 ```bash
-dailybrew config set llm.model gpt-4o
+dailybrew config set llm.model deepseek-reasoner
 dailybrew config set options.maxItems 20
-dailybrew config set llm.baseUrl https://api.openai.com/v1
+dailybrew config set llm.baseUrl https://api.deepseek.com
 ```
 ```bash
 dailybrew webhook toggle team-bot

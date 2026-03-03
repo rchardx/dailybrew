@@ -70,7 +70,29 @@ dailybrew run --output digest.md
 | Config | `~/.config/dailybrew/config.yaml` |
 | Sources | `~/.config/dailybrew/sources.yaml` |
 | State DB | `~/.local/share/dailybrew/dailybrew.db` |
-Webhooks are configured in `config.yaml`:
+
+### LLM
+
+Run `dailybrew auth` for interactive setup, or edit `config.yaml` directly:
+
+```yaml
+llm:
+  baseUrl: "https://api.deepseek.com"
+  apiKey: "${DAILYBREW_API_KEY}"
+  model: "deepseek-reasoner"
+```
+
+The `auth` command includes a few common presets (DeepSeek, OpenRouter, local) for convenience, but any OpenAI-compatible endpoint works — just provide the base URL, model name, and API key.
+
+API key can be set via environment variable (recommended) or hardcoded in YAML:
+
+```bash
+export DAILYBREW_API_KEY=sk-...
+```
+
+### Webhooks
+
+Webhooks push digests to external services after each run. Currently supports **Feishu (飞书)** bot endpoints.
 
 ```yaml
 webhooks:
@@ -80,7 +102,7 @@ webhooks:
     enabled: true
 ```
 
-Set `DAILYBREW_API_KEY` env var for the LLM API key (recommended over hardcoding in YAML).
+Manage via CLI: `dailybrew webhook add <url>`, `webhook remove <name>`, `webhook toggle <name>`.
 
 ## Development
 

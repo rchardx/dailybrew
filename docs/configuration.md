@@ -20,9 +20,9 @@ The `config.yaml` file defines how dailybrew interacts with LLM providers and se
 
 ```yaml
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "${DAILYBREW_API_KEY}"    # environment variable substitution supported
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 options:
   maxItems: 10                      # max items per source per run
   maxContentLength: 65536           # max characters of content sent to LLM
@@ -31,9 +31,9 @@ options:
 
 ### Fields
 
-- **llm.baseUrl** (string): The base URL for the OpenAI-compatible API. Default: `https://api.openai.com/v1`.
+- **llm.baseUrl** (string): The base URL for the OpenAI-compatible API. Default: `https://api.deepseek.com`.
 - **llm.apiKey** (string): Your API key for the LLM provider. Supports `${VAR_NAME}` syntax for environment variable substitution.
-- **llm.model** (string): The specific model ID to use for summarization. Default: `gpt-4o-mini`.
+- **llm.model** (string): The specific model ID to use for summarization. Default: `deepseek-reasoner`.
 - **options.maxItems** (positive integer): The maximum number of new articles to process per source during a single run. Default: `10`.
 - **options.maxContentLength** (positive integer): The maximum number of characters from an article sent to the LLM. Content exceeding this limit is truncated. Default: `65536`.
 - **options.concurrency** (positive integer): The number of parallel requests allowed for fetching and summarizing articles. Higher values speed up processing but may hit rate limits. Default: `8`.
@@ -108,11 +108,9 @@ The `dailybrew auth` command provides interactive setup with presets for popular
 
 | Provider | Base URL | Default Model |
 | -------- | -------- | ------------- |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
-| OpenRouter | `https://openrouter.ai/api/v1` | `openai/gpt-4o-mini` |
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-reasoner` |
+| OpenRouter | `https://openrouter.ai/api/v1` | `deepseek/deepseek-reasoner` |
 | Local (LM Studio / Ollama) | `http://localhost:1234/v1` | `local-model` |
-| Custom | User provided | User provided |
 
 ## Settable Config Keys
 
