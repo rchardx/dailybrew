@@ -21,9 +21,9 @@ describe('Config Loader', () => {
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key-123"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 
 options:
   maxItems: 10
@@ -33,9 +33,9 @@ options:
     fs.writeFileSync(configPath, configContent)
 
     const config = loadConfig(configPath)
-    expect(config.llm.baseUrl).toBe('https://api.openai.com/v1')
+    expect(config.llm.baseUrl).toBe('https://api.deepseek.com')
     expect(config.llm.apiKey).toBe('test-key-123')
-    expect(config.llm.model).toBe('gpt-4o-mini')
+    expect(config.llm.model).toBe('deepseek-reasoner')
     expect(config.options.maxItems).toBe(10)
   })
 
@@ -45,9 +45,9 @@ options:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "\${TEST_API_KEY}"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -63,9 +63,9 @@ llm:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "\${DAILYBREW_API_KEY}"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -79,9 +79,9 @@ llm:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "\${NONEXISTENT_VAR}"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -97,7 +97,7 @@ llm:
 llm:
   baseUrl: "\${BASE_URL}"
   apiKey: "\${API_KEY}"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -113,9 +113,9 @@ llm:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -142,8 +142,8 @@ llm:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
-  model: "gpt-4o-mini"
+  baseUrl: "https://api.deepseek.com"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 
@@ -154,9 +154,9 @@ llm:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 
 sources:
   - name: "Antirez"
@@ -178,9 +178,9 @@ sources:
     const configPath = path.join(tempDir, 'config.yaml')
     const configContent = `
 llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "\${DAILYBREW_API_KEY}"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 `
     fs.writeFileSync(configPath, configContent)
 

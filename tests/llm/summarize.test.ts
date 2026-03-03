@@ -90,7 +90,7 @@ describe('summarizeItem', () => {
 
       const result = await summarizeItem(
         client,
-        'gpt-4o-mini',
+        'deepseek-reasoner',
         'Article about TypeScript 6.0...',
         'TechCrunch',
       )

@@ -69,7 +69,7 @@ describe('configSet', () => {
   it('should show old and new values', () => {
     const result = configSet(configPath, 'llm.model', 'deepseek-chat')
 
-    expect(result).toContain('gpt-4o-mini')
+    expect(result).toContain('deepseek-reasoner')
     expect(result).toContain('→')
     expect(result).toContain('deepseek-chat')
   })
@@ -156,9 +156,9 @@ describe('configShow', () => {
   it('should strip sources key from output (legacy configs)', async () => {
     fs.mkdirSync(configDir, { recursive: true })
     const configWithSources = `llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 sources:
   - name: "HN"
     url: "https://hnrss.org/frontpage"

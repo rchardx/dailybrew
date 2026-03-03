@@ -6,7 +6,7 @@ describe('LLM Client', () => {
     const client = createLLMClient({
       baseUrl: 'https://api.custom-llm.com/v1',
       apiKey: 'test-api-key-123',
-      model: 'gpt-4o-mini',
+      model: 'deepseek-reasoner',
     })
 
     expect(client).toBeDefined()
@@ -16,7 +16,7 @@ describe('LLM Client', () => {
 
   it('should create a client with the provided apiKey', () => {
     const client = createLLMClient({
-      baseUrl: 'https://api.openai.com/v1',
+      baseUrl: 'https://api.deepseek.com',
       apiKey: 'sk-test-key-abc',
       model: 'gpt-4o',
     })
@@ -27,9 +27,9 @@ describe('LLM Client', () => {
 
   it('should configure maxRetries to 3', () => {
     const client = createLLMClient({
-      baseUrl: 'https://api.openai.com/v1',
+      baseUrl: 'https://api.deepseek.com',
       apiKey: 'test-key',
-      model: 'gpt-4o-mini',
+      model: 'deepseek-reasoner',
     })
 
     expect(client).toBeDefined()
@@ -39,9 +39,9 @@ describe('LLM Client', () => {
 
   it('should configure default timeout to 60000ms', () => {
     const client = createLLMClient({
-      baseUrl: 'https://api.openai.com/v1',
+      baseUrl: 'https://api.deepseek.com',
       apiKey: 'test-key',
-      model: 'gpt-4o-mini',
+      model: 'deepseek-reasoner',
     })
 
     // The OpenAI client exposes the timeout
@@ -51,9 +51,9 @@ describe('LLM Client', () => {
   it('should configure custom timeout when provided', () => {
     const client = createLLMClient(
       {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'test-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
       120000,
     )

@@ -82,9 +82,9 @@ describe('loadWebhooks', () => {
     fs.writeFileSync(
       configPath,
       `llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 webhooks:
   - type: feishu
     name: team-bot
@@ -107,9 +107,9 @@ webhooks:
     fs.writeFileSync(
       configPath,
       `llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 webhooks:
   - type: feishu
     name: valid-bot
@@ -132,9 +132,9 @@ webhooks:
     fs.writeFileSync(
       configPath,
       `llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 webhooks:
   - type: feishu
     name: bot-1
@@ -228,9 +228,9 @@ describe('listWebhooks', () => {
     fs.writeFileSync(
       configPath,
       `llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 webhooks:
   - type: feishu
     name: team-bot
@@ -253,9 +253,9 @@ webhooks:
     fs.writeFileSync(
       configPath,
       `llm:
-  baseUrl: "https://api.openai.com/v1"
+  baseUrl: "https://api.deepseek.com"
   apiKey: "test-key"
-  model: "gpt-4o-mini"
+  model: "deepseek-reasoner"
 webhooks:
   - type: feishu
     name: paused-bot

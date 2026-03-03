@@ -5,9 +5,9 @@ describe('Config Schema', () => {
   it('should validate a complete valid config', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'test-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
       sources: [
         {
@@ -35,9 +35,9 @@ describe('Config Schema', () => {
   it('should apply default values for missing options', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'test-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
       sources: [
         {
@@ -61,7 +61,7 @@ describe('Config Schema', () => {
     const config = {
       llm: {
         apiKey: 'test-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
       sources: [
         {
@@ -82,8 +82,8 @@ describe('Config Schema', () => {
   it('should reject config missing llm.apiKey', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
-        model: 'gpt-4o-mini',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-reasoner',
       },
       sources: [],
     }
@@ -98,7 +98,7 @@ describe('Config Schema', () => {
   it('should reject config missing llm.model', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'test-key',
       },
       sources: [],
@@ -116,7 +116,7 @@ describe('Config Schema', () => {
       llm: {
         baseUrl: 'not-a-url',
         apiKey: 'test-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
       sources: [],
     }
@@ -174,7 +174,7 @@ describe('Config Schema', () => {
   it('should provide clear error message for invalid config', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
       },
     }
 
@@ -189,7 +189,7 @@ describe('Config Schema', () => {
   it('should provide clear error message for invalid config', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
       },
       sources: [
         {

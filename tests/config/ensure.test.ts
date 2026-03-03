@@ -71,10 +71,10 @@ describe('isAuthConfigured', () => {
   it('should return false if apiKey is a placeholder and env var is not set', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder for testing
         apiKey: '${DAILYBREW_API_KEY}',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -86,10 +86,10 @@ describe('isAuthConfigured', () => {
   it('should return true if apiKey is a placeholder but env var IS set', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder for testing
         apiKey: '${DAILYBREW_TEST_KEY}',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -102,9 +102,9 @@ describe('isAuthConfigured', () => {
   it('should return true if apiKey is a real value', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'sk-real-key-here',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -122,9 +122,9 @@ describe('isAuthConfigured', () => {
   it('should return false if apiKey is empty string', () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: '',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -141,9 +141,9 @@ describe('ensureAuth', () => {
   it('should return true immediately if already configured', async () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'sk-existing-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -155,10 +155,10 @@ describe('ensureAuth', () => {
   it('should return false when user cancels provider selection', async () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder for testing
         apiKey: '${DAILYBREW_API_KEY}',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -175,10 +175,10 @@ describe('ensureAuth', () => {
   it('should write config when user completes setup with preset', async () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder for testing
         apiKey: '${DAILYBREW_API_KEY}',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
       sources: [],
     }
@@ -188,9 +188,9 @@ describe('ensureAuth', () => {
     const { consola } = await import('consola')
     const promptMock = vi.spyOn(consola, 'prompt')
     // Step 1: Select provider
-    promptMock.mockResolvedValueOnce('OpenAI' as any)
+    promptMock.mockResolvedValueOnce('DeepSeek' as any)
     // Step 2: Model (accept default)
-    promptMock.mockResolvedValueOnce('gpt-4o-mini' as any)
+    promptMock.mockResolvedValueOnce('deepseek-reasoner' as any)
     // Step 3: API key
     promptMock.mockResolvedValueOnce('sk-test-key-123' as any)
 
@@ -199,18 +199,18 @@ describe('ensureAuth', () => {
 
     // Verify config was written
     const updatedConfig = yaml.load(fs.readFileSync(configPath, 'utf-8')) as any
-    expect(updatedConfig.llm.baseUrl).toBe('https://api.openai.com/v1')
+    expect(updatedConfig.llm.baseUrl).toBe('https://api.deepseek.com')
     expect(updatedConfig.llm.apiKey).toBe('sk-test-key-123')
-    expect(updatedConfig.llm.model).toBe('gpt-4o-mini')
+    expect(updatedConfig.llm.model).toBe('deepseek-reasoner')
   })
 
   it('should write config for custom provider', async () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder for testing
         apiKey: '${DAILYBREW_API_KEY}',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -239,10 +239,10 @@ describe('ensureAuth', () => {
   it('should allow skipping API key for local providers', async () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional placeholder for testing
         apiKey: '${DAILYBREW_API_KEY}',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
@@ -268,24 +268,24 @@ describe('ensureAuth', () => {
   it('should re-prompt when force option is set even if configured', async () => {
     const config = {
       llm: {
-        baseUrl: 'https://api.openai.com/v1',
+        baseUrl: 'https://api.deepseek.com',
         apiKey: 'sk-existing-key',
-        model: 'gpt-4o-mini',
+        model: 'deepseek-reasoner',
       },
     }
     fs.writeFileSync(configPath, yaml.dump(config), 'utf-8')
 
     const { consola } = await import('consola')
     const promptMock = vi.spyOn(consola, 'prompt')
-    promptMock.mockResolvedValueOnce('Groq' as any)
-    promptMock.mockResolvedValueOnce('llama-3.3-70b-versatile' as any)
-    promptMock.mockResolvedValueOnce('gsk-new-key' as any)
+    promptMock.mockResolvedValueOnce('OpenRouter' as any)
+    promptMock.mockResolvedValueOnce('deepseek/deepseek-reasoner' as any)
+    promptMock.mockResolvedValueOnce('sk-new-key' as any)
 
     const result = await ensureAuth(configPath, { force: true })
     expect(result).toBe(true)
 
     const updatedConfig = yaml.load(fs.readFileSync(configPath, 'utf-8')) as any
-    expect(updatedConfig.llm.baseUrl).toBe('https://api.groq.com/openai/v1')
-    expect(updatedConfig.llm.apiKey).toBe('gsk-new-key')
+    expect(updatedConfig.llm.baseUrl).toBe('https://openrouter.ai/api/v1')
+    expect(updatedConfig.llm.apiKey).toBe('sk-new-key')
   })
 })
