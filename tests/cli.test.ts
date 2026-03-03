@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { main } from '../src/cli.ts'
 
@@ -154,7 +157,9 @@ describe('CLI', () => {
 
   describe('meta', () => {
     it('should have version matching package.json', () => {
-      expect(main.meta?.version).toBe('0.1.1')
+      const pkgPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'))
+      expect(main.meta?.version).toBe(pkg.version)
     })
 
     it('should have description mentioning LLM and RSS', () => {
