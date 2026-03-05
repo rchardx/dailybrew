@@ -1,1 +1,34 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Format and lint staged files
+echo "📦 Format & lint staged files..."
 npx lint-staged
+
+# 2. TypeScript type check
+echo "🔎 Type checking..."
+pnpm lint || {
+  echo "❌ TypeScript type check failed"
+  exit 1
+}
+
+# 3. Build verification (ensures WASM binary is copied)
+echo "🏗️  Verifying build..."
+pnpm build || {
+  echo "❌ Build failed"
+  exit 1
+}
+
+# 4. Check pnpm lockfile consistency
+echo "🔒 Checking lockfile consistency..."
+if [ -f "pnpm-lock.yaml" ]; then
+  pnpm install --frozen-lockfile --prefer-offline 2>&1 | grep -q "ERR_PNPM_OUTDATED_LOCKFILE" && {
+    echo "❌ Lockfile is outdated. Run 'pnpm install' to update it."
+    exit 1
+  }
+  echo "✓ Lockfile is up-to-date"
+fi
+
+echo "✅ All pre-commit checks passed!"

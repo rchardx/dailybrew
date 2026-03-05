@@ -19,6 +19,12 @@
   "lint-staged": {
     "*.{ts,js,json}": [
       "biome check --write --no-errors-on-unmatched"
+    ],
+    "*.{yaml,yml}": [
+      "node -e \"require('js-yaml').load(require('fs').readFileSync(process.argv[1], 'utf8')) && console.log('✓ YAML valid')\""
+    ],
+    "*.md": [
+      "node -e \"const fs=require('fs'); const content=fs.readFileSync(process.argv[1], 'utf8'); if (content.includes('TODO') || content.includes('FIXME')) { console.warn('⚠️  TODO/FIXME found in', process.argv[1]); }\""
     ]
   },
   "bin": {
@@ -66,6 +72,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
+    "@commitlint/cli": "^20.4.3",
+    "@commitlint/config-conventional": "^20.4.3",
     "@types/cli-progress": "^3.11.6",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.10.6",
