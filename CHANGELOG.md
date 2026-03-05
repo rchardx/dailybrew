@@ -1,5 +1,12 @@
 # dailybrew
 
+## [0.2.3](https://github.com/rchardx/dailybrew/compare/v0.2.2...v0.2.3) (2026-03-05)
+
+
+### Bug Fixes
+
+* remove deprecated husky v10.0.0 shebang syntax ([b35f0f1](https://github.com/rchardx/dailybrew/commit/b35f0f16698abdc5dad28d036bd3e07088668fd4))
+
 ## [0.2.2](https://github.com/rchardx/dailybrew/compare/v0.2.1...v0.2.2) (2026-03-03)
 
 
