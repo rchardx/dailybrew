@@ -139,38 +139,42 @@ dailybrew config set llm.model deepseek-reasoner
 dailybrew config set options.maxItems 20
 dailybrew config set llm.baseUrl https://api.deepseek.com
 ```
-```bash
-dailybrew webhook toggle team-bot
-```
-Toggle a webhook's enabled/disabled state.
-,
-## webhook toggle <name>
-,
-```bash
-dailybrew webhook remove team-bot
-```
-,
-Remove a webhook by name.
-,
-## webhook remove <name>
-,
+
+## webhook
+
+List all configured webhooks with details (name, type, URL, status).
+
+## webhook add <url>
+
+Add a new webhook endpoint.
+
+### Flags
+
+- `--name, -n <name>`: Display name for the webhook (required)
+- `--type, -t <type>`: Webhook type: `feishu` (required)
+
+### Examples
+
 ```bash
 dailybrew webhook add https://open.feishu.cn/open-apis/bot/v2/hook/xxx --name team-bot --type feishu
 ```
-,
-### Examples
-,
-- `--name, -n <name>`: Display name for the webhook (required)
-- `--type, -t <type>`: Webhook type: `feishu` (required)
-,
-### Flags
-,
-Add a new webhook endpoint.
-,
-## webhook add <url>
-,
-List all configured webhooks with details (name, type, URL, status).
-,
 
-## webhook
-,
+## webhook remove <name>
+
+Remove a webhook by name.
+
+### Examples
+
+```bash
+dailybrew webhook remove team-bot
+```
+
+## webhook toggle <name>
+
+Toggle a webhook's enabled/disabled state.
+
+### Examples
+
+```bash
+dailybrew webhook toggle team-bot
+```

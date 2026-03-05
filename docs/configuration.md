@@ -27,7 +27,8 @@ options:
   maxItems: 10                      # max items per source per run
   maxContentLength: 65536           # max characters of content sent to LLM
   concurrency: 8                    # parallel fetch/summarize limit
-```
+  fetchTimeout: 20000               # timeout for HTTP requests (ms)
+  llmTimeout: 60000                 # timeout for LLM API calls (ms)
 
 ### Fields
 
@@ -37,6 +38,8 @@ options:
 - **options.maxItems** (positive integer): The maximum number of new articles to process per source during a single run. Default: `10`.
 - **options.maxContentLength** (positive integer): The maximum number of characters from an article sent to the LLM. Content exceeding this limit is truncated. Default: `65536`.
 - **options.concurrency** (positive integer): The number of parallel requests allowed for fetching and summarizing articles. Higher values speed up processing but may hit rate limits. Default: `8`.
+- **options.fetchTimeout** (positive integer): Timeout in milliseconds for HTTP requests when fetching RSS feeds or web pages. Default: `20000` (20 seconds).
+- **options.llmTimeout** (positive integer): Timeout in milliseconds for LLM API calls during summarization. Default: `60000` (60 seconds).
 
 ### Environment Variable Substitution
 
@@ -122,6 +125,8 @@ You can modify individual configuration values using the `dailybrew config set <
 - `options.maxItems` (positive integer): Maximum items per source.
 - `options.maxContentLength` (positive integer): Maximum content characters per article.
 - `options.concurrency` (positive integer): Parallel processing limit.
+- `options.fetchTimeout` (positive integer): HTTP request timeout in milliseconds.
+- `options.llmTimeout` (positive integer): LLM API timeout in milliseconds.
 
 ## Auto-initialization
 

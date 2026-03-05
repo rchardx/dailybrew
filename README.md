@@ -61,7 +61,7 @@ dailybrew run --output digest.md
 
 **`run` flags**: `--config <path>`, `--output <path>`, `--max-items <n>`, `--since <duration>`
 
-**Config keys**: `llm.baseUrl`, `llm.apiKey`, `llm.model`, `options.maxItems`, `options.maxContentLength`, `options.concurrency`
+**Config keys**: `llm.baseUrl`, `llm.apiKey`, `llm.model`, `options.maxItems`, `options.maxContentLength`, `options.concurrency`, `options.fetchTimeout`, `options.llmTimeout`
 
 ## Configuration
 

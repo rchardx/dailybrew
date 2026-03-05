@@ -452,7 +452,7 @@ export default defineCommand({
     const result = await runPipeline(runOptions)
     if (!args.output) {
       // Write digest to stdout directly — not through logger (which goes to stderr)
-      process.stdout.write(result + '\n')
+      process.stdout.write(`${result}\n`)
     }
   },
 })
