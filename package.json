@@ -1,6 +1,6 @@
 {
   "name": "dailybrew",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "LLM-powered RSS/web digest CLI",
   "main": "dist/cli.mjs",
   "type": "module",
